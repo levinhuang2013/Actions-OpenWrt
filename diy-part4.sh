@@ -26,7 +26,7 @@ git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-web
 git clone https://github.com/sirpdboy/netspeedtest package/homebox
 
 # Modify default WiFi SSID
-$sed -i 's/ImmortalWrt-2.4G/ImmortalWrt/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+#sed -i 's/ImmortalWrt-2.4G/ImmortalWrt/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 #sed -i 's/ImmortalWrt-5G/ImmortalWrt-5G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 #sed -i 's/MT7981_AX3000_2.4G/ImmortalWrt/g' package/mtk/drivers/wifi-profile/files/mt7981/mt7981.dbdc.b0.dat
 #sed -i 's/MT7981_AX3000_5G/ImmortalWrt-5G/g' package/mtk/drivers/wifi-profile/files/mt7981/mt7981.dbdc.b1.dat

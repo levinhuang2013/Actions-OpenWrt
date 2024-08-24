@@ -58,11 +58,18 @@ jobs:
       run: |
         cd openwrt
         sudo apt install neofetch
+        echo -e "show neofetch"
         neofetch
+        echo -e "list of disk"
         lsblk
+        echo -e "space used"
         df -Th
-        lsblk
-        fdisk -l
+        echo -e "cpu info"
+        cat /proc/cpuinfo
+        echo -e "meminfo info"
+        cat /proc/meminfo
+        echo -e "uname -a"
+        uname -a
         echo -e "$(nproc) thread compile"
         sudo apt install gcc-aarch64-linux-gnu device-tree-compiler
         SOC=mt7986 BOARD=zyxel_ex5700 ./build.sh

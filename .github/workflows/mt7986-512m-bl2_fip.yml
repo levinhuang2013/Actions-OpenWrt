@@ -58,7 +58,7 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
-        sudo apt install gcc-aarch64-linux-gnu
+        sudo apt install gcc-aarch64-linux-gnu device-tree-compiler
         SOC=mt7986 BOARD=zyxel_ex5700 ./build.sh
         echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT

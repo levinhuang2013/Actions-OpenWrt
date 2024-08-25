@@ -33,7 +33,7 @@ sed -i 's/ImmortalWrt-2.4G/ImmortalWrt/g' package/mtk/applications/mtwifi-cfg/fi
 
 # Use WACPU/WOCPU NEW FW
 #sed -i 's/mt7981-fw-20230306/mt7981-fw-20230411/g' package/mtk/drivers/mt_wifi/Makefile
-#sed -i 's/mt7981-fw-20230411/mt7981-fw-20230330/g' package/mtk/drivers/warp/Makefile
+sed -i 's/mt7981-fw-20231228/mt7981-fw-asus-ax57/g' package/mtk/drivers/warp/Makefile
 
 # Add OpenClash DEV/TUN core
 cd ./feeds/luci/applications/luci-app-openclash/root/etc/openclash/

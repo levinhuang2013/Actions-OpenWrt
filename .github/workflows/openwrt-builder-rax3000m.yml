@@ -20,7 +20,7 @@ env:
   REPO_URL: https://github.com/levinhuang2013/immortalwrt-mt798x
   REPO_BRANCH: openwrt-21.02
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: padavanonly/NekokeCore-rax3000m.config
+  CONFIG_FILE: padavanonly/NekokeCore-rax3000m-backup.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part3.sh
   UPLOAD_BIN_DIR: false
@@ -137,7 +137,7 @@ jobs:
       run: |
         echo "release_tag=immortalwrt-mt798x${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.10.1, openclash(dev), passwall(iptable tproxy, sing-box), mosdns, adguardhome, aliyun-webdav, samba, msd-lite, ddns-go, rndis, usb2, usb3, usb3disable, w/o memory shrink, zerotier, luci-app-mtwifi-cfg, mt_wifi-new-20230411, warp-new-20230411" >> release.txt
+        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.10.1, openclash(dev), passwall(iptable tproxy, ss-rust), mosdns, adguardhome, aliyun-webdav, samba, msd-lite, ddns-go, rndis, usb2, usb3, usb3disable, w/o memory shrink, zerotier, luci-app-mtwifi-cfg, mt_wifi-new-20230411, warp-new-20230411" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

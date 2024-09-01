@@ -137,7 +137,7 @@ jobs:
       run: |
         echo "release_tag=immortalwrt-mt798x${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.10.1, openclash(dev), passwall(iptable tproxy, ss-rust), mosdns, adguardhome, aliyun-webdav, samba, msd-lite, ddns-go, rndis, usb2, usb3, usb3disable, w/o memory shrink, zerotier, luci-app-mtwifi-cfg, mt_wifi-new-20230411, warp-new-20230411" >> release.txt
+        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.10.1, openclash(dev), passwall(iptable tproxy, sing-box, ss-rust), mosdns, adguardhome, aliyun-webdav, samba, msd-lite, ddns-go, rndis, usb2, usb3, usb3disable, w/o memory shrink, zerotier, luci-app-mtwifi-cfg, mt_wifi-new-20230411, warp-new-20230411" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

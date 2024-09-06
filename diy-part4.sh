@@ -20,10 +20,10 @@
 #sed -i 's/OpenWrt/P3TERX-Router/g' package/base-files/files/bin/config_generate
 
 # Add packages
-git clone -b js https://github.com/gngpp/luci-theme-design package/luci-theme-design
+#git clone -b js https://github.com/gngpp/luci-theme-design package/luci-theme-design
 git clone https://github.com/rufengsuixing/luci-app-adguardhome package/luci-app-adguardhome
 git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-webdav
-git clone https://github.com/sirpdboy/netspeedtest package/homebox
+#git clone https://github.com/sirpdboy/netspeedtest package/homebox
 
 # Modify default WiFi SSID
 #sed -i 's/ImmortalWrt-2.4G/ImmortalWrt/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
@@ -42,8 +42,8 @@ sed -i '$i\ifconfig raix0 down' package/base-files/files/etc/rc.local
 # Add OpenClash DEV/TUN core
 cd ./feeds/luci/applications/luci-app-openclash/root/etc/openclash/
 mkdir ./core && cd ./core
-curl -sfL -o ./dev.tar.gz https://github.com/vernesong/OpenClash/raw/core/dev/dev/clash-linux-arm64.tar.gz
-tar -zxf ./dev.tar.gz
-#curl -sfL -o ./clash_tun.gz https://github.com/vernesong/OpenClash/raw/core/dev/premium/clash-linux-arm64-2023.08.17-13-gdcc8d87.gz
-#gzip -d clash_tun.gz
+#curl -sfL -o ./dev.tar.gz https://github.com/vernesong/OpenClash/raw/core/dev/dev/clash-linux-arm64.tar.gz
+#tar -zxf ./dev.tar.gz
+curl -sfL -o ./clash_tun.gz https://github.com/vernesong/OpenClash/raw/core/dev/premium/clash-linux-arm64-2023.08.17-13-gdcc8d87.gz
+gzip -d clash_tun.gz
 chmod +x ./clash* ; rm -rf ./*.gz

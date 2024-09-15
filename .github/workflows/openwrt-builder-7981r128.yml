@@ -129,9 +129,9 @@ jobs:
       id: tag
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
-        echo "release_tag=openwrtwrt-${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
+        echo "release_tag=OpenWrt${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "openwrt-${{ env.DEVICE_NAME }}, lan: 192.168.1.1, luci-app-mtk" >> release.txt
+        echo "OpenWrt${{ env.DEVICE_NAME }}, lan: 192.168.1.1, luci-app-mtk" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

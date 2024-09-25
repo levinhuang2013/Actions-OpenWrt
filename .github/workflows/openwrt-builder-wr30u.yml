@@ -17,10 +17,10 @@ on:
   workflow_dispatch:
 
 env:
-  REPO_URL: https://github.com/padavanonly/immortalwrt-mt798x-23.05
-  REPO_BRANCH: openwrt-23.05
+  REPO_URL: https://github.com/levinhuang2013/immortalwrt-mt798x
+  REPO_BRANCH: 20240920
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: padavanonly/wr30u-23.05.config
+  CONFIG_FILE: hanwckf/wr30u-mtwifi-cfg-backup.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
   UPLOAD_BIN_DIR: false
@@ -131,7 +131,7 @@ jobs:
       run: |
         echo "release_tag=immortalwrt-mt798x${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.31.1, psw: password; openclash(dev), passwall(ss_rust), adguardhome, aliyun-webdav, luci-mtwifi-cfg, ssid: Xiaomi_203-5G, mt_wifi-new-fw-20230411, warp-new-fw-20230411" >> release.txt
+        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.31.1, psw: password; openclash(dev), passwall(ss_rust, trojan_plus), adguardhome, aliyun-webdav, msd_lite, luci-mtwifi-cfg, luci-app-eqos-mtk, ssid: Xiaomi_203-5G, mt_wifi-new-fw-20230411, warp-new-fw-20230411" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

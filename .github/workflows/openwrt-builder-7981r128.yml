@@ -131,7 +131,7 @@ jobs:
       run: |
         echo "release_tag=OpenWrt${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "OpenWrt${{ env.DEVICE_NAME }}, lan: 192.168.1.1, luci-app-mtk" >> release.txt
+        echo "OpenWrt${{ env.DEVICE_NAME }}, lan: 192.168.8.1, luci-app-mtwifi-cfg, sfp linkmode patch, mt_wifi-new-fw-20230411, warp-new-fw-20230411" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

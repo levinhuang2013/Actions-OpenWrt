@@ -95,6 +95,69 @@ Index: linux-5.4.211/drivers/net/ethernet/intel/igb/igb_main.c
  	default:
  		pba = E1000_PBA_34K;
  		break;
+Index: linux-5.4.211/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
+===================================================================
+--- linux-5.4.211.orig/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
++++ linux-5.4.211/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
+@@ -4827,8 +4823,8 @@ empty_set:
+ 	bitmap_zero(supported, __ETHTOOL_LINK_MODE_MASK_NBITS);
+ }
+ 
+-static void mvpp22_xlg_link_state(struct mvpp2_port *port,
+-				  struct phylink_link_state *state)
++static void mvpp22_xlg_pcs_get_state(struct mvpp2_port *port,
++				     struct phylink_link_state *state)
+ {
+ 	u32 val;
+ 
+@@ -4847,8 +4843,8 @@ static void mvpp22_xlg_link_state(struct
+ 		state->pause |= MLO_PAUSE_RX;
+ }
+ 
+-static void mvpp2_gmac_link_state(struct mvpp2_port *port,
+-				  struct phylink_link_state *state)
++static void mvpp2_gmac_pcs_get_state(struct mvpp2_port *port,
++				     struct phylink_link_state *state)
+ {
+ 	u32 val;
+ 
+@@ -4881,8 +4877,8 @@ static void mvpp2_gmac_link_state(struct
+ 		state->pause |= MLO_PAUSE_TX;
+ }
+ 
+-static int mvpp2_phylink_mac_link_state(struct phylink_config *config,
+-					struct phylink_link_state *state)
++static void mvpp2_phylink_mac_pcs_get_state(struct phylink_config *config,
++					    struct phylink_link_state *state)
+ {
+ 	struct mvpp2_port *port = mvpp2_phylink_to_port(config);
+ 
+@@ -4891,13 +4887,12 @@ static int mvpp2_phylink_mac_link_state(
+ 		mode &= MVPP22_XLG_CTRL3_MACMODESELECT_MASK;
+ 
+ 		if (mode == MVPP22_XLG_CTRL3_MACMODESELECT_10G) {
+-			mvpp22_xlg_link_state(port, state);
+-			return 1;
++			mvpp22_xlg_pcs_get_state(port, state);
++			return;
+ 		}
+ 	}
+ 
+-	mvpp2_gmac_link_state(port, state);
+-	return 1;
++	mvpp2_gmac_pcs_get_state(port, state);
+ }
+ 
+ static void mvpp2_mac_an_restart(struct phylink_config *config)
+@@ -5188,7 +5180,7 @@ static void mvpp2_mac_link_down(struct p
+ 
+ static const struct phylink_mac_ops mvpp2_phylink_ops = {
+ 	.validate = mvpp2_phylink_validate,
+-	.mac_link_state = mvpp2_phylink_mac_link_state,
++	.mac_pcs_get_state = mvpp2_phylink_mac_pcs_get_state,
+ 	.mac_an_restart = mvpp2_mac_an_restart,
+ 	.mac_config = mvpp2_mac_config,
+ 	.mac_link_up = mvpp2_mac_link_up,
 Index: linux-5.4.211/drivers/net/ethernet/mediatek/mtk_eth_soc.c
 ===================================================================
 --- linux-5.4.211.orig/drivers/net/ethernet/mediatek/mtk_eth_soc.c
@@ -167,6 +230,49 @@ Index: linux-5.4.211/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c
  	.mac_config = stmmac_mac_config,
  	.mac_an_restart = stmmac_mac_an_restart,
  	.mac_link_down = stmmac_mac_link_down,
+
+Index: linux-5.4.211/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+===================================================================
+--- linux-5.4.211.orig/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
++++ linux-5.4.211/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
+@@ -1418,8 +1418,8 @@ static void axienet_validate(struct phyl
+ 		   __ETHTOOL_LINK_MODE_MASK_NBITS);
+ }
+ 
+-static int axienet_mac_link_state(struct phylink_config *config,
+-				  struct phylink_link_state *state)
++static void axienet_mac_pcs_get_state(struct phylink_config *config,
++				      struct phylink_link_state *state)
+ {
+ 	struct net_device *ndev = to_net_dev(config->dev);
+ 	struct axienet_local *lp = netdev_priv(ndev);
+@@ -1444,8 +1444,6 @@ static int axienet_mac_link_state(struct
+ 
+ 	state->an_complete = 0;
+ 	state->duplex = 1;
+-
+-	return 1;
+ }
+ 
+ static void axienet_mac_an_restart(struct phylink_config *config)
+@@ -1501,16 +1499,16 @@ static void axienet_mac_link_down(struct
+ }
+ 
+ static void axienet_mac_link_up(struct phylink_config *config,
+ 				unsigned int mode,
+ 				phy_interface_t interface,
+ 				struct phy_device *phy)
+ {
+ 	/* nothing meaningful to do */
+ }
+ 
+ static const struct phylink_mac_ops axienet_phylink_ops = {
+ 	.validate = axienet_validate,
+-	.mac_link_state = axienet_mac_link_state,
++	.mac_pcs_get_state = axienet_mac_pcs_get_state,
+ 	.mac_an_restart = axienet_mac_an_restart,
+ 	.mac_config = axienet_mac_config,
+ 	.mac_link_down = axienet_mac_link_down,
 Index: linux-5.4.211/drivers/net/phy/Makefile
 ===================================================================
 --- linux-5.4.211.orig/drivers/net/phy/Makefile

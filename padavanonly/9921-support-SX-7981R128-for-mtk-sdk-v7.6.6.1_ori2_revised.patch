@@ -99,33 +99,7 @@ Index: linux-5.4.284/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
 ===================================================================
 --- linux-5.4.284.orig/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
 +++ linux-5.4.284/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
-@@ -58,11 +58,8 @@ static struct {
-  */
- static void mvpp2_mac_config(struct phylink_config *config, unsigned int mode,
- 			     const struct phylink_link_state *state);
--static void mvpp2_mac_link_up(struct phylink_config *config,
--			      struct phy_device *phy,
--			      unsigned int mode, phy_interface_t interface,
--			      int speed, int duplex,
--			      bool tx_pause, bool rx_pause);
-+static void mvpp2_mac_link_up(struct phylink_config *config, unsigned int mode,
-+			      phy_interface_t interface, struct phy_device *phy);
- 
- /* Queue modes */
- #define MVPP2_QDIST_SINGLE_MODE	0
-@@ -3471,9 +3468,8 @@ static void mvpp2_start_dev(struct mvpp2
- 			.interface = port->phy_interface,
- 		};
- 		mvpp2_mac_config(&port->phylink_config, MLO_AN_INBAND, &state);
--		mvpp2_mac_link_up(&port->phylink_config, NULL,
--				  MLO_AN_INBAND, port->phy_interface,
--				  SPEED_UNKNOWN, DUPLEX_UNKNOWN, false, false);
-+		mvpp2_mac_link_up(&port->phylink_config, MLO_AN_INBAND,
-+				  port->phy_interface, NULL);
- 	}
- 
- 	netif_tx_start_all_queues(port->dev);
-@@ -4832,8 +4828,8 @@ empty_set:
+@@ -4827,8 +4823,8 @@ empty_set:
  	bitmap_zero(supported, __ETHTOOL_LINK_MODE_MASK_NBITS);
  }
  
@@ -136,7 +110,7 @@ Index: linux-5.4.284/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
  {
  	u32 val;
  
-@@ -4852,8 +4848,8 @@ static void mvpp22_xlg_link_state(struct
+@@ -4847,8 +4843,8 @@ static void mvpp22_xlg_link_state(struct
  		state->pause |= MLO_PAUSE_RX;
  }
  
@@ -147,7 +121,7 @@ Index: linux-5.4.284/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
  {
  	u32 val;
  
-@@ -4886,8 +4882,8 @@ static void mvpp2_gmac_link_state(struct
+@@ -4881,8 +4877,8 @@ static void mvpp2_gmac_link_state(struct
  		state->pause |= MLO_PAUSE_TX;
  }
  
@@ -158,7 +132,7 @@ Index: linux-5.4.284/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
  {
  	struct mvpp2_port *port = mvpp2_phylink_to_port(config);
  
-@@ -4896,13 +4892,12 @@ static int mvpp2_phylink_mac_link_state(
+@@ -4891,13 +4887,12 @@ static int mvpp2_phylink_mac_link_state(
  		mode &= MVPP22_XLG_CTRL3_MACMODESELECT_MASK;
  
  		if (mode == MVPP22_XLG_CTRL3_MACMODESELECT_10G) {
@@ -175,21 +149,7 @@ Index: linux-5.4.284/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
  }
  
  static void mvpp2_mac_an_restart(struct phylink_config *config)
-@@ -5134,11 +5129,8 @@ static void mvpp2_mac_config(struct phyl
- 	mvpp2_port_enable(port);
- }
- 
--static void mvpp2_mac_link_up(struct phylink_config *config,
--			      struct phy_device *phy,
--			      unsigned int mode, phy_interface_t interface,
--			      int speed, int duplex,
--			      bool tx_pause, bool rx_pause)
-+static void mvpp2_mac_link_up(struct phylink_config *config, unsigned int mode,
-+			      phy_interface_t interface, struct phy_device *phy)
- {
- 	struct mvpp2_port *port = mvpp2_phylink_to_port(config);
- 	u32 val;
-@@ -5193,7 +5185,7 @@ static void mvpp2_mac_link_down(struct p
+@@ -5188,7 +5180,7 @@ static void mvpp2_mac_link_down(struct p
  
  static const struct phylink_mac_ops mvpp2_phylink_ops = {
  	.validate = mvpp2_phylink_validate,
@@ -270,11 +230,12 @@ Index: linux-5.4.284/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c
  	.mac_config = stmmac_mac_config,
  	.mac_an_restart = stmmac_mac_an_restart,
  	.mac_link_down = stmmac_mac_link_down,
+
 Index: linux-5.4.284/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
 ===================================================================
 --- linux-5.4.284.orig/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
 +++ linux-5.4.284/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
-@@ -1540,8 +1540,8 @@ static void axienet_validate(struct phyl
+@@ -1418,8 +1418,8 @@ static void axienet_validate(struct phyl
  		   __ETHTOOL_LINK_MODE_MASK_NBITS);
  }
  
@@ -285,7 +246,7 @@ Index: linux-5.4.284/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
  {
  	struct net_device *ndev = to_net_dev(config->dev);
  	struct axienet_local *lp = netdev_priv(ndev);
-@@ -1566,8 +1566,6 @@ static int axienet_mac_link_state(struct
+@@ -1444,8 +1444,6 @@ static int axienet_mac_link_state(struct
  
  	state->an_complete = 0;
  	state->duplex = 1;
@@ -294,22 +255,7 @@ Index: linux-5.4.284/drivers/net/ethernet/xilinx/xilinx_axienet_main.c
  }
  
  static void axienet_mac_an_restart(struct phylink_config *config)
-@@ -1623,17 +1621,16 @@ static void axienet_mac_link_down(struct
- }
- 
- static void axienet_mac_link_up(struct phylink_config *config,
--				struct phy_device *phy,
--				unsigned int mode, phy_interface_t interface,
--				int speed, int duplex,
--				bool tx_pause, bool rx_pause)
-+				unsigned int mode,
-+				phy_interface_t interface,
-+				struct phy_device *phy)
- {
- 	/* nothing meaningful to do */
- }
- 
- static const struct phylink_mac_ops axienet_phylink_ops = {
+@@ -1513,5 +1511,5 @@ static const struct phylink_mac_ops axi
  	.validate = axienet_validate,
 -	.mac_link_state = axienet_mac_link_state,
 +	.mac_pcs_get_state = axienet_mac_pcs_get_state,
@@ -6646,7 +6592,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  /* GPIO port control registers for GMAC 2*/
  #define GPIO_OD33_CTRL8		0x4c0
  #define GPIO_BIAS_CTRL		0xed0
-@@ -1032,81 +1061,161 @@ struct mtk_napi {
+@@ -1032,81 +1061,159 @@ struct mtk_napi {
  };
  
  enum mkt_eth_capabilities {
@@ -6714,7 +6660,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
 -	MTK_TRGMII_MT7621_CLK_BIT,
 -	MTK_QDMA_BIT,
 -	MTK_NETSYS_V2_BIT,
- 	MTK_NETSYS_RX_V2_BIT,
+-	MTK_NETSYS_RX_V2_BIT,
 -	MTK_SOC_MT7628_BIT,
 -	MTK_RSTCTRL_PPE1_BIT,
 -	MTK_U3_COPHY_V2_BIT,
@@ -6791,7 +6737,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
 -#define MTK_TRGMII_MT7621_CLK	BIT(MTK_TRGMII_MT7621_CLK_BIT)
 -#define MTK_QDMA		BIT(MTK_QDMA_BIT)
 -#define MTK_NETSYS_V2		BIT(MTK_NETSYS_V2_BIT)
- #define MTK_NETSYS_RX_V2	BIT(MTK_NETSYS_RX_V2_BIT)
+-#define MTK_NETSYS_RX_V2	BIT(MTK_NETSYS_RX_V2_BIT)
 -#define MTK_SOC_MT7628		BIT(MTK_SOC_MT7628_BIT)
 -#define MTK_RSTCTRL_PPE1	BIT(MTK_RSTCTRL_PPE1_BIT)
 -#define MTK_U3_COPHY_V2		BIT(MTK_U3_COPHY_V2_BIT)
@@ -6878,22 +6824,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  
  /* MUXes present on SoCs */
  /* 0: GDM1 -> GMAC1, 1: GDM1 -> ESW */
-@@ -1161,12 +1273,12 @@ enum mkt_eth_capabilities {
- 
- #define MT7986_CAPS   (MTK_GMAC1_SGMII | MTK_GMAC2_SGMII | \
-                        MTK_MUX_GMAC12_TO_GEPHY_SGMII | MTK_QDMA | \
--                       MTK_NETSYS_V2 | MTK_NETSYS_RX_V2)
-+			MTK_RSTCTRL_PPE1 | MTK_NETSYS_RX_V2)
- 
- #define MT7981_CAPS   (MTK_GMAC1_SGMII | MTK_GMAC2_SGMII | MTK_GMAC2_GEPHY | \
- 			MTK_MUX_GMAC12_TO_GEPHY_SGMII | MTK_QDMA | \
- 			MTK_MUX_U3_GMAC2_TO_QPHY | MTK_U3_COPHY_V2 | \
--			MTK_NETSYS_V2)
-+			MTK_RSTCTRL_PPE1 | MTK_SRAM)
- 
- /* struct mtk_eth_data -	This is the structure holding all differences
-  *				among various plaforms
-@@ -1181,11 +1298,21 @@ struct mtk_tx_dma_desc_info {
+@@ -1181,11 +1293,21 @@ struct mtk_tx_dma_desc_info {
   */
  struct mtk_soc_data {
  	u32             ana_rgc3;
@@ -6917,7 +6848,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  };
  
  /* currently no SoC has more than 2 macs */
-@@ -1270,6 +1397,7 @@ struct mtk_eth {
+@@ -1270,6 +1392,7 @@ struct mtk_eth {
  	unsigned long			sysclk;
  	struct regmap			*ethsys;
  	struct regmap                   *infra;
@@ -6925,7 +6856,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  	struct mtk_sgmii                *sgmii;
  	struct regmap			*pctl;
  	bool				hwlro;
-@@ -1319,6 +1447,8 @@ struct mtk_mac {
+@@ -1319,6 +1442,8 @@ struct mtk_mac {
  	struct mtk_hw_stats		*hw_stats;
  	__be32				hwlro_ip[MTK_MAX_LRO_IP_CNT];
  	int				hwlro_ip_cnt;
@@ -6934,7 +6865,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  };
  
  /* the struct describing the SoC. these are declared in the soc_xyz.c files */
-@@ -1333,7 +1463,7 @@ u32 mtk_r32(struct mtk_eth *eth, unsigne
+@@ -1333,7 +1458,7 @@ u32 mtk_r32(struct mtk_eth *eth, unsigne
  u32 mtk_m32(struct mtk_eth *eth, u32 mask, u32 set, unsigned reg);
  
  int mtk_sgmii_init(struct mtk_sgmii *ss, struct device_node *np,
@@ -6943,7 +6874,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  int mtk_sgmii_setup_mode_an(struct mtk_sgmii *ss, unsigned int id);
  int mtk_sgmii_setup_mode_force(struct mtk_sgmii *ss, unsigned int id,
  			       const struct phylink_link_state *state);
-@@ -1346,4 +1476,37 @@ void mtk_gdm_config(struct mtk
+@@ -1346,4 +1471,37 @@ void mtk_gdm_config(struct mtk_eth *eth
  void ethsys_reset(struct mtk_eth *eth, u32 reset_bits);
  int mtk_soc_extphy_init(struct mtk_eth *eth, int addr);
  int mtk_mdio_busy_wait(struct mtk_eth *eth);
@@ -7522,7 +7453,7 @@ Index: linux-5.4.284/include/linux/regmap.h
 ===================================================================
 --- linux-5.4.284.orig/include/linux/regmap.h
 +++ linux-5.4.284/include/linux/regmap.h
-@@ -1081,6 +1081,19 @@ static inline bool regmap_reg_in_range(u
+@@ -1062,6 +1062,19 @@ static inline bool regmap_reg_in_range(u
  	return reg >= range->range_min && reg <= range->range_max;
  }
  

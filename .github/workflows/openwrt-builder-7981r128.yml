@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
 
 env:
-  REPO_URL: https://github.com/zjuahhy/immortalwrt-mt798x
+  REPO_URL: https://github.com/levinhuang2013/immortalwrt-mt798x
   REPO_BRANCH: 7981r128
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: padavanonly/mt798x-7981r128.config

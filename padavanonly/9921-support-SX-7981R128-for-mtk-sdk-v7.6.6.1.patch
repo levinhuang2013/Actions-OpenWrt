@@ -221,7 +221,7 @@ Index: linux-5.4.211/drivers/net/ethernet/stmicro/stmmac/stmmac_main.c
  {
  	struct stmmac_priv *priv = netdev_priv(to_net_dev(config->dev));
  
-@@ -941,7 +939,7 @@ static void stmmac_mac_link_up(struct ph
+@@ -943,7 +941,7 @@ static void stmmac_mac_link_up(struct ph
  
  static const struct phylink_mac_ops stmmac_phylink_mac_ops = {
  	.validate = stmmac_validate,
@@ -6558,7 +6558,7 @@ Index: linux-5.4.211/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  /* Unicast Filter MAC Address Register - Low */
  #define MTK_GDMA_MAC_ADRL(x)	(0x508 + (x * 0x1000))
  
-@@ -576,6 +581,14 @@
+@@ -586,6 +591,14 @@
  #define PHY_IAC_TIMEOUT		HZ
  
  #define MTK_MAC_MISC		0x1000c
@@ -6573,7 +6573,7 @@ Index: linux-5.4.211/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  #define MTK_MUX_TO_ESW		BIT(0)
  
  /* Mac control registers */
-@@ -585,6 +598,7 @@
+@@ -595,6 +608,7 @@
  #define MAC_MCR_FORCE_MODE	BIT(15)
  #define MAC_MCR_TX_EN		BIT(14)
  #define MAC_MCR_RX_EN		BIT(13)
@@ -6581,7 +6581,7 @@ Index: linux-5.4.211/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  #define MAC_MCR_BACKOFF_EN	BIT(9)
  #define MAC_MCR_BACKPR_EN	BIT(8)
  #define MAC_MCR_FORCE_RX_FC	BIT(5)
-@@ -639,6 +653,21 @@
+@@ -649,6 +663,21 @@
  #define INTF_MODE_RGMII_1000    (TRGMII_MODE | TRGMII_CENTRAL_ALIGNED)
  #define INTF_MODE_RGMII_10_100  0
  
@@ -6603,7 +6603,7 @@ Index: linux-5.4.211/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  /* GPIO port control registers for GMAC 2*/
  #define GPIO_OD33_CTRL8		0x4c0
  #define GPIO_BIAS_CTRL		0xed0
-@@ -1013,81 +1042,159 @@ struct mtk_napi {
+@@ -1032,81 +1061,159 @@ struct mtk_napi {
  };
  
  enum mkt_eth_capabilities {
@@ -6822,7 +6822,7 @@ Index: linux-5.4.211/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  
  #define MTK_GMAC1_RGMII		(MTK_ETH_PATH_GMAC1_RGMII | MTK_RGMII)
  #define MTK_GMAC1_TRGMII	(MTK_ETH_PATH_GMAC1_TRGMII | MTK_TRGMII)
-@@ -1093,7 +1202,12 @@ enum mkt_eth_capabilities {
+@@ -1114,7 +1221,12 @@ enum mkt_eth_capabilities {
  #define MTK_GMAC2_RGMII		(MTK_ETH_PATH_GMAC2_RGMII | MTK_RGMII)
  #define MTK_GMAC2_SGMII		(MTK_ETH_PATH_GMAC2_SGMII | MTK_SGMII)
  #define MTK_GMAC2_GEPHY		(MTK_ETH_PATH_GMAC2_GEPHY | MTK_GEPHY)
@@ -6835,7 +6835,7 @@ Index: linux-5.4.211/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  
  /* MUXes present on SoCs */
  /* 0: GDM1 -> GMAC1, 1: GDM1 -> ESW */
-@@ -1176,11 +1295,21 @@ struct mtk_tx_dma_desc_info {
+@@ -1181,11 +1293,21 @@ struct mtk_tx_dma_desc_info {
   */
  struct mtk_soc_data {
  	u32             ana_rgc3;
@@ -6859,7 +6859,7 @@ Index: linux-5.4.211/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  };
  
  /* currently no SoC has more than 2 macs */
-@@ -1286,6 +1409,7 @@ struct mtk_eth {
+@@ -1270,6 +1392,7 @@ struct mtk_eth {
  	unsigned long			sysclk;
  	struct regmap			*ethsys;
  	struct regmap                   *infra;
@@ -6867,7 +6867,7 @@ Index: linux-5.4.211/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  	struct mtk_sgmii                *sgmii;
  	struct regmap			*pctl;
  	bool				hwlro;
-@@ -1336,6 +1460,8 @@ struct mtk_mac {
+@@ -1319,6 +1442,8 @@ struct mtk_mac {
  	struct mtk_hw_stats		*hw_stats;
  	__be32				hwlro_ip[MTK_MAX_LRO_IP_CNT];
  	int				hwlro_ip_cnt;
@@ -6876,7 +6876,7 @@ Index: linux-5.4.211/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  };
  
  /* the struct describing the SoC. these are declared in the soc_xyz.c files */
-@@ -1350,7 +1476,7 @@ u32 mtk_r32(struct mtk_eth *eth, unsigne
+@@ -1333,7 +1458,7 @@ u32 mtk_r32(struct mtk_eth *eth, unsigne
  u32 mtk_m32(struct mtk_eth *eth, u32 mask, u32 set, unsigned reg);
  
  int mtk_sgmii_init(struct mtk_sgmii *ss, struct device_node *np,
@@ -6885,7 +6885,7 @@ Index: linux-5.4.211/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  int mtk_sgmii_setup_mode_an(struct mtk_sgmii *ss, unsigned int id);
  int mtk_sgmii_setup_mode_force(struct mtk_sgmii *ss, unsigned int id,
  			       const struct phylink_link_state *state);
-@@ -1362,4 +1488,37 @@ void mtk_gdm_config(struct mtk_eth *eth
+@@ -1346,4 +1471,37 @@ void mtk_gdm_config(struct mtk_eth *eth
  void ethsys_reset(struct mtk_eth *eth, u32 reset_bits);
  int mtk_soc_extphy_init(struct mtk_eth *eth, int addr);
  int mtk_mdio_busy_wait(struct mtk_eth *eth);

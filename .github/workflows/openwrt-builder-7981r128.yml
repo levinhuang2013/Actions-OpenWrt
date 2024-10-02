@@ -20,7 +20,7 @@ env:
   REPO_URL: https://github.com/levinhuang2013/immortalwrt-mt798x
   REPO_BRANCH: 7981r128
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: padavanonly/mt798x-7981r128.config
+  CONFIG_FILE: hanwckf/sx-7981r128.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
   UPLOAD_BIN_DIR: false
@@ -131,7 +131,7 @@ jobs:
       run: |
         echo "release_tag=OpenWrt${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "OpenWrt${{ env.DEVICE_NAME }}, lan: 192.168.8.1, luci-app-mtwifi-cfg, sfp linkmode patch, mt_wifi-new-fw-20230411, warp-new-fw-20230411" >> release.txt
+        echo "OpenWrt${{ env.DEVICE_NAME }}, lan: 192.168.8.1, luci-app-mtwifi-cfg, ttyd, homebox, 9921-support-SX-7981R128-for-mtk-sdk-v7.6.6.1.patch, mt_wifi-new-fw-20230411, warp-new-fw-20230411" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

@@ -23,6 +23,7 @@ sed -i 's/192.168.1.1/192.168.8.1/g' package/base-files/files/bin/config_generat
 #git clone -b js https://github.com/gngpp/luci-theme-design package/luci-theme-design
 #git clone https://github.com/rufengsuixing/luci-app-adguardhome package/luci-app-adguardhome
 #git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-webdav
+git clone https://github.com/sirpdboy/netspeedtest package/homebox
 
 # Modify default WiFi SSID
 #sed -i 's/ImmortalWrt-2.4G/Xiaomi_203/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
@@ -41,4 +42,6 @@ sed -i 's/mt7981-fw-20230306/mt7981-fw-20230411/g' package/mtk/drivers/mt_wifi/M
 #tar -zxf ./dev.tar.gz
 #curl -sfL -o ./clash_tun.gz https://github.com/vernesong/OpenClash/raw/core/dev/premium/clash-linux-arm64-2023.08.17-13-gdcc8d87.gz
 #gzip -d clash_tun.gz
+#curl -sfL -o ./meta.tar.gz https://github.com/vernesong/OpenClash/raw/core/dev/meta/clash-linux-arm64.tar.gz
+#tar -zxf ./meta.tar.gz && mv -f clash clash_meta
 #chmod +x ./clash* ; rm -rf ./*.gz

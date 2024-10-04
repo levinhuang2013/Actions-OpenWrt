@@ -1,53 +1,59 @@
 /dts-v1/;
 #include "mt7981.dtsi"
 / {
-	model = "7981R128";
-	compatible = "mediatek,mt7981-spim-snand-7981r128";
+	model = "SX-7981R128";
+	compatible = "sx,7981r128", "mediatek,mt7981";
+
+	aliases {
+		led-boot = &POWER;
+		led-failsafe = &WIFI5G;
+		led-running = &POWER;
+		led-upgrade = &WIFI2G;
+	};
+
 	chosen {
 		bootargs = "console=ttyS0,115200n1 loglevel=8  \
 				earlycon=uart8250,mmio32,0x11002000";
 	};
 
 	memory {
-		// fpga ddr2: 128MB*2
-		reg = <0 0x40000000 0 0x10000000>;
+		reg = <0 0x40000000 0 0x20000000>;
 	};
-
 
 	leds {
 		compatible = "gpio-leds";
 
-		SFP{
+		sfp {
 			label = "SFP";
-			gpios = <&pio 4 1>;
+			gpios = <&pio 4 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
-		WIFI5G{
+		WIFI5G: wifi5g {
 			label = "WIFI5G";
-			gpios = <&pio 5 1>;
+			gpios = <&pio 5 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
-		WIFI2G{
+		WIFI2G: wifi2g {
 			label = "WIFI2G";
-			gpios = <&pio 6 1>;
+			gpios = <&pio 6 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
-		LAN{
+		lan {
 			label = "LAN";
-			gpios = <&pio 8 1>;
+			gpios = <&pio 8 GPIO_ACTIVE_LOW>;
 			default-state = "off";
 		};
 
-		POWER{
+		POWER: power {
 			label = "POWER";
-			gpios = <&pio 13 1>;
+			gpios = <&pio 13 GPIO_ACTIVE_LOW>;
 			default-state = "on";
 		};
-		
 	};
+
 	gpio-keys {
 		compatible = "gpio-keys";
 
@@ -114,7 +120,7 @@
 
 			partition@580000 {
 				label = "ubi";
-				reg = <0x580000 0x4000000>;
+				reg = <0x580000 0x7200000>;
 			};
 		};
 	};
@@ -135,77 +141,78 @@
 };
 
 &eth {
-        status = "okay";
+	status = "okay";
 
-        gmac0: mac@0 {
-                compatible = "mediatek,eth-mac";
-                reg = <0>;
-                phy-mode = "2500base-x";
+	gmac0: mac@0 {
+		compatible = "mediatek,eth-mac";
+		reg = <0>;
+		phy-mode = "2500base-x";
 
-                fixed-link {
-                        speed = <2500>;
-                        full-duplex;
-                        pause;
-                };
-        };
-
-		gmac1: mac@1 {
-			compatible = "mediatek,eth-mac";
-			reg = <1>;
-			phy-mode = "2500base-x";
-			managed = "in-band-status";
-			sfp = <&sfp1>;
+		fixed-link {
+			speed = <2500>;
+			full-duplex;
+			pause;
 		};
+	};
 
-        mdio: mdio-bus {
-                #address-cells = <1>;
-                #size-cells = <0>;
+	gmac1: mac@1 {
+		compatible = "mediatek,eth-mac";
+		reg = <1>;
+		phy-mode = "2500base-x";
+		managed = "in-band-status";
+		sfp = <&sfp1>;
+	};
+
+	mdio: mdio-bus {
+		#address-cells = <1>;
+		#size-cells = <0>;
 
 		phy5: phy@5 {
 			compatible = "ethernet-phy-id67c9.de0a";
 			reg = <5>;
 			reset-gpios = <&pio 7 1>;
-			reset-assert-us = <600>;
+			reset-assert-us = <50000>;
 			reset-deassert-us = <20000>;
 			phy-mode = "2500base-x";
+			maxlinear,led-reg = <0x3c0 0x330 0x3c0 0x330>;
 		};
 
 		switch@0 {
-                        compatible = "mediatek,mt7531";
-                        reg = <31>;
-                        reset-gpios = <&pio 39 0>;
+			compatible = "mediatek,mt7531";
+			reg = <31>;
+			reset-gpios = <&pio 39 0>;
 
-                        ports {
-                                #address-cells = <1>;
-                                #size-cells = <0>;
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
 
-                                port@1 {
-                                        reg = <1>;
-                                        label = "lan1";
-                                };
+				port@1 {
+					reg = <1>;
+					label = "lan1";
+				};
 
-								port@5 {
-									reg = <5>;
-									label = "lan2";
-									phy-mode = "2500base-x";
-									phy-handle = <&phy5>;
-								};
+				port@5 {
+					reg = <5>;
+					label = "lan2";
+					phy-mode = "2500base-x";
+					phy-handle = <&phy5>;
+				};
 
-                                port@6 {
-                                        reg = <6>;
-                                        label = "cpu";
-                                        ethernet = <&gmac0>;
-                                        phy-mode = "2500base-x";
+				port@6 {
+					reg = <6>;
+					label = "cpu";
+					ethernet = <&gmac0>;
+					phy-mode = "2500base-x";
 
-                                        fixed-link {
-                                                speed = <2500>;
-                                                full-duplex;
-                                                pause;
-                                        };
-                                };
-                        };
-                };
-        };
+					fixed-link {
+						speed = <2500>;
+						full-duplex;
+						pause;
+					};
+				};
+			};
+		};
+	};
 };
 
 &hnat {
@@ -231,41 +238,40 @@
 };
 
 &pio {
-
 	i2c_pins: i2c-pins-g0 {
-                mux {
-                        function = "i2c";
-                        groups = "i2c0_0";
-                };
-        };
+		mux {
+			function = "i2c";
+			groups = "i2c0_0";
+		};
+	};
 
-        pcm_pins: pcm-pins-g0 {
-                mux {
-                        function = "pcm";
-                        groups = "pcm";
-                };
-        };
+	pcm_pins: pcm-pins-g0 {
+		mux {
+			function = "pcm";
+			groups = "pcm";
+		};
+	};
 
-        pwm0_pin: pwm0-pin-g0 {
-                mux {
-                        function = "pwm";
-                        groups = "pwm0_0";
-                };
-        };
+	pwm0_pin: pwm0-pin-g0 {
+		mux {
+			function = "pwm";
+			groups = "pwm0_0";
+		};
+	};
 
-        pwm1_pin: pwm1-pin-g0 {
-                mux {
-                        function = "pwm";
-                        groups = "pwm1_0";
-                };
-        };
+	pwm1_pin: pwm1-pin-g0 {
+		mux {
+			function = "pwm";
+			groups = "pwm1_0";
+		};
+	};
 
-        pwm2_pin: pwm2-pin {
-                mux {
-                        function = "pwm";
-                        groups = "pwm2";
-                };
-        };
+	pwm2_pin: pwm2-pin {
+		mux {
+			function = "pwm";
+			groups = "pwm2";
+		};
+	};
 
 	spi0_flash_pins: spi0-pins {
 		mux {
@@ -294,18 +300,18 @@
 	};
 
 	uart1_pins: uart1-pins-g1 {
-                mux {
-                        function = "uart";
-                        groups = "uart1_1";
-                };
-        };
+		mux {
+			function = "uart";
+			groups = "uart1_1";
+		};
+	};
 
 	uart2_pins: uart2-pins-g1 {
 		mux {
-                        function = "uart";
-                        groups = "uart2_1";
-                };
-        };
+			function = "uart";
+			groups = "uart2_1";
+		};
+	};
 };
 
 &xhci {

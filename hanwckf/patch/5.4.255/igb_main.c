@@ -2294,6 +2294,7 @@ void igb_reset(struct igb_adapter *adapter)
 	case e1000_82575:
 	case e1000_i210:
 	case e1000_i211:
+		fallthrough;
 	default:
 		pba = E1000_PBA_34K;
 		break;

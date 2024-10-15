@@ -18,9 +18,9 @@ on:
 
 env:
   REPO_URL: https://github.com/levinhuang2013/immortalwrt-mt798x
-  REPO_BRANCH: 7981r128
+  REPO_BRANCH: 20241015v7672
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: hanwckf/sx-7981r128.config
+  CONFIG_FILE: hanwckf/sx-7981r128-7672.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
   UPLOAD_BIN_DIR: false
@@ -92,7 +92,7 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
-        make -j$(nproc) V=s || make -j1 || make -j1 V=s
+        make -j$(nproc) || make -j1 || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
@@ -131,7 +131,7 @@ jobs:
       run: |
         echo "release_tag=immortalwrt-mt798x${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.8.1, openclash(dev), passwall(ss-rust, trojan-plus), adguardhome, aliyun-webdav, samba, msd-lite, rndis, usb2, usb3, w/o memory shrink, zerotier, luci-app-mtwifi-cfg, ttyd, diskman, 9921-support-SX-7981R128-for-mtk-sdk-v7.6.6.1.patch, mt_wifi-new-fw-20230411, warp-new-fw-20230411" >> release.txt
+        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.8.1, openclash(dev), passwall(ss-rust, trojan-plus), adguardhome, openappfilter, samba, msd-lite, rndis, usb2, usb3, w/o memory shrink, zerotier, luci-app-mtwifi-cfg, ttyd, diskman, 9921-support-SX-7981R128-for-mtk-sdk-v7.6.6.1.patch, mt_wifi-v7.6.7.2" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

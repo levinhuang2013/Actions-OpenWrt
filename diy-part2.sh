@@ -22,8 +22,9 @@ sed -i 's/192.168.1.1/192.168.8.1/g' package/base-files/files/bin/config_generat
 # Add packages
 #git clone -b js https://github.com/gngpp/luci-theme-design package/luci-theme-design
 git clone https://github.com/rufengsuixing/luci-app-adguardhome package/luci-app-adguardhome
-git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-webdav
-git clone https://github.com/sirpdboy/netspeedtest package/homebox
+#git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-webdav
+#git clone https://github.com/sirpdboy/netspeedtest package/homebox
+git clone https://github.com/destan19/OpenAppFilter package/OpenAppFilter
 
 # Modify default WiFi SSID
 #sed -i 's/ImmortalWrt-2.4G/Xiaomi_203/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
@@ -32,7 +33,7 @@ git clone https://github.com/sirpdboy/netspeedtest package/homebox
 #sed -i 's/MT7981_AX3000_5G/Xiaomi_203-5G/g' package/mtk/drivers/wifi-profile/files/mt7981/mt7981.dbdc.b1.dat
 
 # Use WACPU/WOCPU NEW FW
-sed -i 's/mt7981-fw-20230306/mt7981-fw-20230411/g' package/mtk/drivers/mt_wifi/Makefile
+#sed -i 's/mt7981-fw-20230306/mt7981-fw-20230411/g' package/mtk/drivers/mt_wifi/Makefile
 #sed -i 's/mt7981-fw-20230411/mt7981-fw-20230330/g' package/mtk/drivers/warp/Makefile
 
 # Add OpenClash DEV/TUN core

@@ -487,11 +487,11 @@ Index: linux-5.4.211/drivers/net/phy/lxt.c
  		} while (lpa == adv && retry--);
  
  		mii_lpa_to_linkmode_lpa_t(phydev->lp_advertising, lpa);
-Index: linux-5.4.211/drivers/net/phy/mdio_bus.c
+Index: linux-5.4.284/drivers/net/phy/mdio_bus.c
 ===================================================================
---- linux-5.4.211.orig/drivers/net/phy/mdio_bus.c
-+++ linux-5.4.211/drivers/net/phy/mdio_bus.c
-@@ -323,7 +323,7 @@ static inline void of_mdiobus_link_mdiod
+--- linux-5.4.284.orig/drivers/net/phy/mdio_bus.c
++++ linux-5.4.284/drivers/net/phy/mdio_bus.c
+@@ -328,7 +328,7 @@ static inline void of_mdiobus_link_mdiod
  #endif
  
  /**
@@ -500,7 +500,7 @@ Index: linux-5.4.211/drivers/net/phy/mdio_bus.c
   * a mdio_board_info structure
   * @bus: MDIO bus to create the devices on
   * @bi: mdio_board_info structure describing the devices
-@@ -594,6 +594,38 @@ int __mdiobus_write(struct mii_bus *bus,
+@@ -599,6 +599,38 @@ int __mdiobus_write(struct mii_bus *bus,
  EXPORT_SYMBOL(__mdiobus_write);
  
  /**
@@ -539,7 +539,7 @@ Index: linux-5.4.211/drivers/net/phy/mdio_bus.c
   * mdiobus_read_nested - Nested version of the mdiobus_read function
   * @bus: the mii_bus struct
   * @addr: the phy address
-@@ -698,6 +730,27 @@ int mdiobus_write(struct mii_bus *bus, i
+@@ -703,6 +735,27 @@ int mdiobus_write(struct mii_bus *bus, i
  EXPORT_SYMBOL(mdiobus_write);
  
  /**
@@ -746,10 +746,10 @@ Index: linux-5.4.211/drivers/net/phy/phy.c
  		}
  		do_suspend = true;
  		break;
-Index: linux-5.4.211/drivers/net/phy/phy_device.c
+Index: linux-5.4.284/drivers/net/phy/phy_device.c
 ===================================================================
---- linux-5.4.211.orig/drivers/net/phy/phy_device.c
-+++ linux-5.4.211/drivers/net/phy/phy_device.c
+--- linux-5.4.284.orig/drivers/net/phy/phy_device.c
++++ linux-5.4.284/drivers/net/phy/phy_device.c
 @@ -31,6 +31,8 @@
  #include <linux/mdio.h>
  #include <linux/io.h>
@@ -882,7 +882,7 @@ Index: linux-5.4.211/drivers/net/phy/phy_device.c
  }
  EXPORT_SYMBOL(phy_attached_print);
  
-@@ -1438,6 +1440,78 @@ static bool phy_driver_is_genphy_kind(st
+@@ -1376,6 +1377,78 @@ static bool phy_driver_is_genphy_kind(st
  	return ret;
  }
  
@@ -961,7 +961,7 @@ Index: linux-5.4.211/drivers/net/phy/phy_device.c
  bool phy_driver_is_genphy(struct phy_device *phydev)
  {
  	return phy_driver_is_genphy_kind(phydev,
-@@ -2377,6 +2451,32 @@ bool phy_validate_pause(struct phy_devic
+@@ -2173,6 +2246,32 @@ bool phy_validate_pause(struct phy_devic
  }
  EXPORT_SYMBOL(phy_validate_pause);
  
@@ -994,7 +994,7 @@ Index: linux-5.4.211/drivers/net/phy/phy_device.c
  static bool phy_drv_supports_irq(struct phy_driver *phydrv)
  {
  	return phydrv->config_intr && phydrv->ack_interrupt;
-@@ -2426,15 +2526,14 @@ static int phy_probe(struct device *dev)
+@@ -2222,15 +2312,14 @@ static int phy_probe(struct device *dev)
  	 * a controller will attach, and may modify one
  	 * or both of these values
  	 */

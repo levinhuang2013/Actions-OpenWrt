@@ -4447,10 +4447,10 @@ Index: linux-5.4.211/net/dsa/slave.c
  	if (ds->ops->get_phy_flags)
  		phy_flags = ds->ops->get_phy_flags(ds, dp->index);
  
-Index: linux-5.4.211/drivers/net/phy/sfp-bus.c
+Index: linux-5.4.284/drivers/net/phy/sfp-bus.c
 ===================================================================
---- linux-5.4.211.orig/drivers/net/phy/sfp-bus.c
-+++ linux-5.4.211/drivers/net/phy/sfp-bus.c
+--- linux-5.4.284.orig/drivers/net/phy/sfp-bus.c
++++ linux-5.4.284/drivers/net/phy/sfp-bus.c
 @@ -10,12 +10,6 @@
  
  #include "sfp.h"

@@ -6536,7 +6536,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.c
  	if (MTK_HAS_CAPS(eth->soc->caps, MTK_SGMII)) {
  		eth->sgmii = devm_kzalloc(eth->dev, sizeof(*eth->sgmii),
  					  GFP_KERNEL);
-@@ -3779,7 +3667,7 @@ static int mtk_probe(struct platform_dev
+@@ -3579,7 +3667,7 @@ static int mtk_probe(struct platform_dev
  			return -ENOMEM;
  
  		err = mtk_sgmii_init(eth->sgmii, pdev->dev.of_node,
@@ -6842,8 +6842,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  
  #define MT7986_CAPS   (MTK_GMAC1_SGMII | MTK_GMAC2_SGMII | \
                         MTK_MUX_GMAC12_TO_GEPHY_SGMII | MTK_QDMA | \
--                       MTK_NETSYS_V2 | MTK_NETSYS_RX_V2 | MTK_RSTCTRL_PPE1)
-+			MTK_RSTCTRL_PPE1 | MTK_NETSYS_RX_V2)
+                        MTK_NETSYS_V2 | MTK_NETSYS_RX_V2 | MTK_RSTCTRL_PPE1)
  
  #define MT7981_CAPS   (MTK_GMAC1_SGMII | MTK_GMAC2_SGMII | MTK_GMAC2_GEPHY | \
  			MTK_MUX_GMAC12_TO_GEPHY_SGMII | MTK_QDMA | \
@@ -6894,7 +6893,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  };
  
  /* the struct describing the SoC. these are declared in the soc_xyz.c files */
-@@ -1337,7 +1463,7 @@ u32 mtk_r32(struct mtk_eth *eth, unsigne
+@@ -1333,7 +1463,7 @@ u32 mtk_r32(struct mtk_eth *eth, unsigne
  u32 mtk_m32(struct mtk_eth *eth, u32 mask, u32 set, unsigned reg);
  
  int mtk_sgmii_init(struct mtk_sgmii *ss, struct device_node *np,

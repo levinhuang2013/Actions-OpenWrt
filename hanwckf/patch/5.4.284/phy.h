@@ -85,6 +85,7 @@ typedef enum {
 	PHY_INTERFACE_MODE_TBI,
 	PHY_INTERFACE_MODE_REVMII,
 	PHY_INTERFACE_MODE_RMII,
+	PHY_INTERFACE_MODE_REVRMII,
 	PHY_INTERFACE_MODE_RGMII,
 	PHY_INTERFACE_MODE_RGMII_ID,
 	PHY_INTERFACE_MODE_RGMII_RXID,
@@ -92,18 +93,58 @@ typedef enum {
 	PHY_INTERFACE_MODE_RTBI,
 	PHY_INTERFACE_MODE_SMII,
 	PHY_INTERFACE_MODE_XGMII,
+	PHY_INTERFACE_MODE_XLGMII,
 	PHY_INTERFACE_MODE_MOCA,
 	PHY_INTERFACE_MODE_QSGMII,
 	PHY_INTERFACE_MODE_TRGMII,
+	PHY_INTERFACE_MODE_100BASEX,
 	PHY_INTERFACE_MODE_1000BASEX,
 	PHY_INTERFACE_MODE_2500BASEX,
+	PHY_INTERFACE_MODE_5GBASER,
 	PHY_INTERFACE_MODE_RXAUI,
 	PHY_INTERFACE_MODE_XAUI,
-	/* 10GBASE-KR, XFI, SFI - single lane 10G Serdes */
-	PHY_INTERFACE_MODE_10GKR,
+	/* 10GBASE-R, XFI, SFI - single lane 10G Serdes */
+	PHY_INTERFACE_MODE_10GBASER,
+	PHY_INTERFACE_MODE_25GBASER,
 	PHY_INTERFACE_MODE_USXGMII,
+	/* 10GBASE-KR - with Clause 73 AN */
+	PHY_INTERFACE_MODE_10GKR,
 	PHY_INTERFACE_MODE_MAX,
 } phy_interface_t;
+
++/* PHY interface mode bitmap handling */
++#define DECLARE_PHY_INTERFACE_MASK(name) \
++	DECLARE_BITMAP(name, PHY_INTERFACE_MODE_MAX)
++
++static inline void phy_interface_zero(unsigned long *intf)
+{
+	bitmap_zero(intf, PHY_INTERFACE_MODE_MAX);
+}
+
+static inline bool phy_interface_empty(const unsigned long *intf)
+{
+	return bitmap_empty(intf, PHY_INTERFACE_MODE_MAX);
+}
+
+static inline void phy_interface_and(unsigned long *dst, const unsigned long *a,
+				     const unsigned long *b)
+{
+	bitmap_and(dst, a, b, PHY_INTERFACE_MODE_MAX);
+}
+
+static inline void phy_interface_or(unsigned long *dst, const unsigned long *a,
+				    const unsigned long *b)
+{
+	bitmap_or(dst, a, b, PHY_INTERFACE_MODE_MAX);
+}
+
+static inline void phy_interface_set_rgmii(unsigned long *intf)
+{
+	__set_bit(PHY_INTERFACE_MODE_RGMII, intf);
+	__set_bit(PHY_INTERFACE_MODE_RGMII_ID, intf);
+	__set_bit(PHY_INTERFACE_MODE_RGMII_RXID, intf);
+	__set_bit(PHY_INTERFACE_MODE_RGMII_TXID, intf);
+}
 
 /**
  * phy_supported_speeds - return all speeds currently supported by a phy device
@@ -194,12 +235,6 @@ static inline const char *phy_modes(phy_interface_t interface)
 #define PHY_ID_FMT "%s:%02x"
 
 #define MII_BUS_ID_SIZE	61
-
-/* Or MII_ADDR_C45 into regnum for read/write on mii_bus to enable the 21 bit
-   IEEE 802.3ae clause 45 addressing mode used by 10GIGE phy chips. */
-#define MII_ADDR_C45 (1<<30)
-#define MII_DEVADDR_C45_SHIFT	16
-#define MII_REGADDR_C45_MASK	GENMASK(15, 0)
 
 struct device;
 struct phylink;
@@ -317,11 +352,13 @@ enum phy_state {
 
 /**
  * struct phy_c45_device_ids - 802.3-c45 Device Identifiers
- * @devices_in_package: Bit vector of devices present.
+ * @devices_in_package: IEEE 802.3 devices in package register value.
+ * @mmds_present: bit vector of MMDs present.
  * @device_ids: The device identifer for each present device.
  */
 struct phy_c45_device_ids {
 	u32 devices_in_package;
+	u32 mmds_present;
 	u32 device_ids[8];
 };
 
@@ -376,6 +413,8 @@ struct phy_device {
 	unsigned suspended_by_mdio_bus:1;
 	unsigned sysfs_links:1;
 	unsigned loopback_enabled:1;
+
+	unsigned mac_managed_pm:1;
 
 	unsigned autoneg:1;
 	/* The most recently read link state */
@@ -440,7 +479,7 @@ struct phy_device {
 	u8 mdix;
 	u8 mdix_ctrl;
 
-	void (*phy_link_change)(struct phy_device *, bool up, bool do_carrier);
+	void (*phy_link_change)(struct phy_device *phydev, bool up);
 	void (*adjust_link)(struct net_device *dev);
 };
 #define to_phy_device(d) container_of(to_mdio_device(d), \
@@ -1003,6 +1042,10 @@ struct phy_device *phy_device_create(struct mii_bus *bus, int addr, u32 phy_id,
 struct phy_device *get_phy_device(struct mii_bus *bus, int addr, bool is_c45);
 int phy_device_register(struct phy_device *phy);
 void phy_device_free(struct phy_device *phydev);
+struct fwnode_handle *fwnode_get_phy_node(struct fwnode_handle *fwnode);
+struct mdio_device *fwnode_mdio_find_device(struct fwnode_handle *fwnode);
+struct phy_device *fwnode_phy_find_device(struct fwnode_handle *phy_fwnode);
+
 #else
 static inline
 struct phy_device *get_phy_device(struct mii_bus *bus, int addr, bool is_c45)
@@ -1013,6 +1056,24 @@ struct phy_device *get_phy_device(struct mii_bus *bus, int addr, bool is_c45)
 static inline int phy_device_register(struct phy_device *phy)
 {
 	return 0;
+}
+
+static inline
+struct fwnode_handle *fwnode_get_phy_node(struct fwnode_handle *fwnode)
+{
+	return NULL;
+}
+
+static inline
+struct mdio_device *fwnode_mdio_find_device(struct fwnode_handle *fwnode)
+{
+	return 0;
+}
+
+static inline
+struct phy_device *fwnode_phy_find_device(struct fwnode_handle *phy_fwnode)
+{
+	return NULL;
 }
 
 static inline void phy_device_free(struct phy_device *phydev) { }
@@ -1070,6 +1131,8 @@ static inline const char *phydev_name(const struct phy_device *phydev)
 
 void phy_attached_print(struct phy_device *phydev, const char *fmt, ...)
 	__printf(2, 3);
+char *phy_attached_info_irq(struct phy_device *phydev)
+	__malloc;
 void phy_attached_info(struct phy_device *phydev);
 
 /* Clause 22 PHY */
@@ -1167,6 +1230,7 @@ void phy_set_sym_pause(struct phy_device *phydev, bool rx, bool tx,
 void phy_set_asym_pause(struct phy_device *phydev, bool rx, bool tx);
 bool phy_validate_pause(struct phy_device *phydev,
 			struct ethtool_pauseparam *pp);
+void phy_get_pause(struct phy_device *phydev, bool *tx_pause, bool *rx_pause);
 
 int phy_register_fixup(const char *bus_id, u32 phy_uid, u32 phy_uid_mask,
 		       int (*run)(struct phy_device *));

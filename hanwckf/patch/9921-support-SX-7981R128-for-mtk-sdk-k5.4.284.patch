@@ -4404,7 +4404,7 @@ Index: linux-5.4.284/net/dsa/slave.c
 ===================================================================
 --- linux-5.4.284.orig/net/dsa/slave.c
 +++ linux-5.4.284/net/dsa/slave.c
-@@ -1289,10 +1289,10 @@ void dsa_port_phylink_mac_change(struct
+@@ -1290,10 +1290,10 @@ void dsa_port_phylink_mac_change(struct
  }
  EXPORT_SYMBOL_GPL(dsa_port_phylink_mac_change);
  
@@ -4417,7 +4417,7 @@ Index: linux-5.4.284/net/dsa/slave.c
  	struct dsa_switch *ds = dp->ds;
  
  	/* No need to check that this operation is valid, the callback would
-@@ -1331,6 +1331,15 @@ static int dsa_slave_phy_setup(struct ne
+@@ -1332,6 +1332,15 @@ static int dsa_slave_phy_setup(struct ne
  	dp->pl_config.dev = &slave_dev->dev;
  	dp->pl_config.type = PHYLINK_NETDEV;
  
@@ -4433,7 +4433,7 @@ Index: linux-5.4.284/net/dsa/slave.c
  	dp->pl = phylink_create(&dp->pl_config, of_fwnode_handle(port_dn), mode,
  				&dsa_port_phylink_mac_ops);
  	if (IS_ERR(dp->pl)) {
-@@ -1339,13 +1348,6 @@ static int dsa_slave_phy_setup(struct ne
+@@ -1340,13 +1349,6 @@ static int dsa_slave_phy_setup(struct ne
  		return PTR_ERR(dp->pl);
  	}
  

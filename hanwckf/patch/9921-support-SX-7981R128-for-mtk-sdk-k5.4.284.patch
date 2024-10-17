@@ -3579,11 +3579,11 @@ Index: linux-5.4.211/include/linux/mii.h
   * mii_advertise_flowctrl - get flow control advertisement flags
   * @cap: Flow control capabilities (FLOW_CTRL_RX, FLOW_CTRL_TX or both)
   */
-Index: linux-5.4.211/include/linux/phy.h
+Index: linux-5.4.284/include/linux/phy.h
 ===================================================================
---- linux-5.4.211.orig/include/linux/phy.h
-+++ linux-5.4.211/include/linux/phy.h
-@@ -86,6 +86,7 @@ typedef enum {
+--- linux-5.4.284.orig/include/linux/phy.h
++++ linux-5.4.284/include/linux/phy.h
+@@ -85,6 +85,7 @@ typedef enum {
  	PHY_INTERFACE_MODE_TBI,
  	PHY_INTERFACE_MODE_REVMII,
  	PHY_INTERFACE_MODE_RMII,
@@ -3591,7 +3591,7 @@ Index: linux-5.4.211/include/linux/phy.h
  	PHY_INTERFACE_MODE_RGMII,
  	PHY_INTERFACE_MODE_RGMII_ID,
  	PHY_INTERFACE_MODE_RGMII_RXID,
-@@ -93,19 +94,59 @@ typedef enum {
+@@ -92,19 +93,59 @@ typedef enum {
  	PHY_INTERFACE_MODE_RTBI,
  	PHY_INTERFACE_MODE_SMII,
  	PHY_INTERFACE_MODE_XGMII,
@@ -3653,7 +3653,7 @@ Index: linux-5.4.211/include/linux/phy.h
  /**
   * phy_supported_speeds - return all speeds currently supported by a phy device
   * @phy: The phy device to return supported speeds of.
-@@ -196,12 +237,6 @@ static inline const char *phy_modes(phy_
+@@ -195,12 +236,6 @@ static inline const char *phy_modes(phy_
  
  #define MII_BUS_ID_SIZE	61
  
@@ -3666,7 +3666,7 @@ Index: linux-5.4.211/include/linux/phy.h
  struct device;
  struct phylink;
  struct sfp_bus;
-@@ -320,11 +355,13 @@ enum phy_state {
+@@ -319,11 +354,13 @@ enum phy_state {
  
  /**
   * struct phy_c45_device_ids - 802.3-c45 Device Identifiers
@@ -3681,7 +3681,7 @@ Index: linux-5.4.211/include/linux/phy.h
  	u32 device_ids[8];
  };
  
-@@ -382,6 +419,8 @@ struct phy_device {
+@@ -381,6 +418,8 @@ struct phy_device {
  	unsigned sysfs_links:1;
  	unsigned loopback_enabled:1;
  
@@ -3690,7 +3690,7 @@ Index: linux-5.4.211/include/linux/phy.h
  	unsigned autoneg:1;
  	/* The most recently read link state */
  	unsigned link:1;
-@@ -448,7 +487,7 @@ struct phy_device {
+@@ -447,7 +486,7 @@ struct phy_device {
  	u8 mdix;
  	u8 mdix_ctrl;
  
@@ -3699,7 +3699,7 @@ Index: linux-5.4.211/include/linux/phy.h
  	void (*adjust_link)(struct net_device *dev);
  };
  #define to_phy_device(d) container_of(to_mdio_device(d), \
-@@ -1029,6 +1068,10 @@ struct phy_device *phy_device_create(str
+@@ -1016,6 +1055,10 @@ struct phy_device *phy_device_create(str
  struct phy_device *get_phy_device(struct mii_bus *bus, int addr, bool is_c45);
  int phy_device_register(struct phy_device *phy);
  void phy_device_free(struct phy_device *phydev);
@@ -3710,7 +3710,7 @@ Index: linux-5.4.211/include/linux/phy.h
  #else
  static inline
  struct phy_device *get_phy_device(struct mii_bus *bus, int addr, bool is_c45)
-@@ -1041,6 +1084,24 @@ static inline int phy_device_register(st
+@@ -1028,6 +1071,24 @@ static inline int phy_device_register(st
  	return 0;
  }
  
@@ -3735,7 +3735,7 @@ Index: linux-5.4.211/include/linux/phy.h
  static inline void phy_device_free(struct phy_device *phydev) { }
  #endif /* CONFIG_PHYLIB */
  void phy_device_remove(struct phy_device *phydev);
-@@ -1100,6 +1161,8 @@ static inline const char *phydev_name(co
+@@ -1087,6 +1148,8 @@ static inline const char *phydev_name(co
  
  void phy_attached_print(struct phy_device *phydev, const char *fmt, ...)
  	__printf(2, 3);
@@ -3744,7 +3744,7 @@ Index: linux-5.4.211/include/linux/phy.h
  void phy_attached_info(struct phy_device *phydev);
  
  /* Clause 22 PHY */
-@@ -1201,6 +1264,7 @@ void phy_set_sym_pause(struct phy_device
+@@ -1188,6 +1251,7 @@ void phy_set_sym_pause(struct phy_device
  void phy_set_asym_pause(struct phy_device *phydev, bool rx, bool tx);
  bool phy_validate_pause(struct phy_device *phydev,
  			struct ethtool_pauseparam *pp);
@@ -4400,11 +4400,11 @@ Index: linux-5.4.211/net/dsa/port.c
  	.mac_config = dsa_port_phylink_mac_config,
  	.mac_an_restart = dsa_port_phylink_mac_an_restart,
  	.mac_link_down = dsa_port_phylink_mac_link_down,
-Index: linux-5.4.211/net/dsa/slave.c
+Index: linux-5.4.284/net/dsa/slave.c
 ===================================================================
---- linux-5.4.211.orig/net/dsa/slave.c
-+++ linux-5.4.211/net/dsa/slave.c
-@@ -1292,10 +1292,10 @@ void dsa_port_phylink_mac_change(struct
+--- linux-5.4.284.orig/net/dsa/slave.c
++++ linux-5.4.284/net/dsa/slave.c
+@@ -1289,10 +1289,10 @@ void dsa_port_phylink_mac_change(struct
  }
  EXPORT_SYMBOL_GPL(dsa_port_phylink_mac_change);
  
@@ -4417,7 +4417,7 @@ Index: linux-5.4.211/net/dsa/slave.c
  	struct dsa_switch *ds = dp->ds;
  
  	/* No need to check that this operation is valid, the callback would
-@@ -1334,6 +1334,15 @@ static int dsa_slave_phy_setup(struct ne
+@@ -1331,6 +1331,15 @@ static int dsa_slave_phy_setup(struct ne
  	dp->pl_config.dev = &slave_dev->dev;
  	dp->pl_config.type = PHYLINK_NETDEV;
  
@@ -4433,7 +4433,7 @@ Index: linux-5.4.211/net/dsa/slave.c
  	dp->pl = phylink_create(&dp->pl_config, of_fwnode_handle(port_dn), mode,
  				&dsa_port_phylink_mac_ops);
  	if (IS_ERR(dp->pl)) {
-@@ -1342,13 +1351,6 @@ static int dsa_slave_phy_setup(struct ne
+@@ -1339,13 +1348,6 @@ static int dsa_slave_phy_setup(struct ne
  		return PTR_ERR(dp->pl);
  	}
  
@@ -4447,10 +4447,10 @@ Index: linux-5.4.211/net/dsa/slave.c
  	if (ds->ops->get_phy_flags)
  		phy_flags = ds->ops->get_phy_flags(ds, dp->index);
  
-Index: linux-5.4.284/drivers/net/phy/sfp-bus.c
+Index: linux-5.4.211/drivers/net/phy/sfp-bus.c
 ===================================================================
---- linux-5.4.284.orig/drivers/net/phy/sfp-bus.c
-+++ linux-5.4.284/drivers/net/phy/sfp-bus.c
+--- linux-5.4.211.orig/drivers/net/phy/sfp-bus.c
++++ linux-5.4.211/drivers/net/phy/sfp-bus.c
 @@ -10,12 +10,6 @@
  
  #include "sfp.h"

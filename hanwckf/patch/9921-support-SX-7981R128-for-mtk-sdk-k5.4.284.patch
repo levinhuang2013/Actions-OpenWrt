@@ -149,7 +149,7 @@ Index: linux-5.4.284/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
  }
  
  static void mvpp2_mac_an_restart(struct phylink_config *config)
-@@ -5183,7 +5192,7 @@ static void mvpp2_mac_link_down(struct p
+@@ -5193,7 +5192,7 @@ static void mvpp2_mac_link_down(struct p
  
  static const struct phylink_mac_ops mvpp2_phylink_ops = {
  	.validate = mvpp2_phylink_validate,

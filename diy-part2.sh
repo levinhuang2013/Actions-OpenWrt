@@ -24,7 +24,7 @@ sed -i 's/192.168.1.1/192.168.8.1/g' package/base-files/files/bin/config_generat
 git clone https://github.com/rufengsuixing/luci-app-adguardhome package/luci-app-adguardhome
 #git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-webdav
 git clone https://github.com/sirpdboy/netspeedtest package/homebox
-git clone https://github.com/destan19/OpenAppFilter package/OpenAppFilter
+#git clone https://github.com/destan19/OpenAppFilter package/OpenAppFilter
 
 # Modify default WiFi SSID
 #sed -i 's/ImmortalWrt-2.4G/Xiaomi_203/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh

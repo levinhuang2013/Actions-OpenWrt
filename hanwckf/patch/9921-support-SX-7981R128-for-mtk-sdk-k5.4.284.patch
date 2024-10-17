@@ -6838,18 +6838,12 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  
  /* MUXes present on SoCs */
  /* 0: GDM1 -> GMAC1, 1: GDM1 -> ESW */
-@@ -1161,12 +1275,12 @@ enum mkt_eth_capabilities {
- 
- #define MT7986_CAPS   (MTK_GMAC1_SGMII | MTK_GMAC2_SGMII | \
-                        MTK_MUX_GMAC12_TO_GEPHY_SGMII | MTK_QDMA | \
--                       MTK_NETSYS_V2 | MTK_NETSYS_RX_V2 | MTK_RSTCTRL_PPE1)
-+			MTK_RSTCTRL_PPE1 | MTK_NETSYS_RX_V2)
- 
+@@ -1166,7 +1280,7 @@ enum mkt_eth_capabilities {
  #define MT7981_CAPS   (MTK_GMAC1_SGMII | MTK_GMAC2_SGMII | MTK_GMAC2_GEPHY | \
  			MTK_MUX_GMAC12_TO_GEPHY_SGMII | MTK_QDMA | \
  			MTK_MUX_U3_GMAC2_TO_QPHY | MTK_U3_COPHY_V2 | \
 -			MTK_NETSYS_V2 | MTK_RSTCTRL_PPE1)
-+			MTK_RSTCTRL_PPE1 | MTK_SRAM)
++			MTK_SRAM | MTK_RSTCTRL_PPE1)
  
  /* struct mtk_eth_data -	This is the structure holding all differences
   *				among various plaforms
@@ -6903,7 +6897,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  int mtk_sgmii_setup_mode_an(struct mtk_sgmii *ss, unsigned int id);
  int mtk_sgmii_setup_mode_force(struct mtk_sgmii *ss, unsigned int id,
  			       const struct phylink_link_state *state);
-@@ -1346,4 +1476,37 @@ void mtk_gdm_config(struct mtk_eth *eth,
+@@ -1346,4 +1476,37 @@ void mtk_gdm_config(struct mtk_eth
  void ethsys_reset(struct mtk_eth *eth, u32 reset_bits);
  int mtk_soc_extphy_init(struct mtk_eth *eth, int addr);
  int mtk_mdio_busy_wait(struct mtk_eth *eth);

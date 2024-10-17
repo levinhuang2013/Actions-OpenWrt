@@ -7544,24 +7544,3 @@ Index: linux-5.4.211/net/dsa/port.c
  	.mac_config = dsa_port_phylink_mac_config,
  	.mac_an_restart = dsa_port_phylink_mac_an_restart,
  	.mac_link_down = dsa_port_phylink_mac_link_down,
-Index: linux-5.4.211/include/linux/mdio/mdio-i2c.h
-===================================================================
---- /dev/null
-+++ linux-5.4.211/include/linux/mdio/mdio-i2c.h
-@@ -0,0 +1,16 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * MDIO I2C bridge
-+ *
-+ * Copyright (C) 2015 Russell King
-+ */
-+#ifndef MDIO_I2C_H
-+#define MDIO_I2C_H
-+
-+struct device;
-+struct i2c_adapter;
-+struct mii_bus;
-+
-+struct mii_bus *mdio_i2c_alloc(struct device *parent, struct i2c_adapter *i2c);
-+
-+#endif

@@ -6842,7 +6842,8 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  
  #define MT7986_CAPS   (MTK_GMAC1_SGMII | MTK_GMAC2_SGMII | \
                         MTK_MUX_GMAC12_TO_GEPHY_SGMII | MTK_QDMA | \
-                        MTK_NETSYS_V2 | MTK_NETSYS_RX_V2 | MTK_RSTCTRL_PPE1)
+-                       MTK_NETSYS_V2 | MTK_NETSYS_RX_V2 | MTK_RSTCTRL_PPE1)
++			MTK_RSTCTRL_PPE1 | MTK_NETSYS_RX_V2)
  
  #define MT7981_CAPS   (MTK_GMAC1_SGMII | MTK_GMAC2_SGMII | MTK_GMAC2_GEPHY | \
  			MTK_MUX_GMAC12_TO_GEPHY_SGMII | MTK_QDMA | \
@@ -6902,7 +6903,7 @@ Index: linux-5.4.284/drivers/net/ethernet/mediatek/mtk_eth_soc.h
  int mtk_sgmii_setup_mode_an(struct mtk_sgmii *ss, unsigned int id);
  int mtk_sgmii_setup_mode_force(struct mtk_sgmii *ss, unsigned int id,
  			       const struct phylink_link_state *state);
-@@ -1346,4 +1476,37 @@ int mtk_gmac_rgmii_path_setup(struct mtk
+@@ -1346,4 +1476,37 @@ void mtk_gdm_config(struct mtk_eth *eth,
  void ethsys_reset(struct mtk_eth *eth, u32 reset_bits);
  int mtk_soc_extphy_init(struct mtk_eth *eth, int addr);
  int mtk_mdio_busy_wait(struct mtk_eth *eth);

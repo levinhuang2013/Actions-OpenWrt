@@ -7496,10 +7496,10 @@ Index: linux-5.4.284/include/linux/regmap.h
  bool regmap_reg_in_ranges(unsigned int reg,
  			  const struct regmap_range *ranges,
  			  unsigned int nranges);
-Index: linux-5.4.211/include/net/dsa.h
+Index: linux-5.4.284/include/net/dsa.h
 ===================================================================
---- linux-5.4.211.orig/include/net/dsa.h
-+++ linux-5.4.211/include/net/dsa.h
+--- linux-5.4.284.orig/include/net/dsa.h
++++ linux-5.4.284/include/net/dsa.h
 @@ -369,6 +369,9 @@ struct dsa_switch_ops {
  	enum dsa_tag_protocol (*get_tag_protocol)(struct dsa_switch *ds,
  						  int port,

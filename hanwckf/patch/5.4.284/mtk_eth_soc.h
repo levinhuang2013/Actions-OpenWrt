@@ -1470,7 +1470,6 @@ void mtk_gdm_config(struct mtk_eth *eth, u32 id, u32 config);
 void ethsys_reset(struct mtk_eth *eth, u32 reset_bits);
 int mtk_soc_extphy_init(struct mtk_eth *eth, int addr);
 int mtk_mdio_busy_wait(struct mtk_eth *eth);
-
 /* GMAC Identifier */
 enum mtk_gmac_id {
 	MTK_GMAC1_ID = 0,

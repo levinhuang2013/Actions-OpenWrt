@@ -85,8 +85,6 @@ jobs:
         sudo -E apt-get -qq install neofetch fastfetch
         echo -e "*******************neofetch*******************"
         neofetch
-        echo -e "*******************fastfetch*******************"
-        fastfetch
         echo -e "*******************uname -a*******************"
         uname -a
         echo -e "*******************lsblk*******************"

@@ -1630,7 +1630,7 @@ static void axienet_mac_link_up(struct phylink_config *config,
 
 static const struct phylink_mac_ops axienet_phylink_ops = {
 	.validate = axienet_validate,
-	.mac_link_state = axienet_mac_link_state,
+	.mac_pcs_get_state = axienet_mac_pcs_get_state,
 	.mac_an_restart = axienet_mac_an_restart,
 	.mac_config = axienet_mac_config,
 	.mac_link_down = axienet_mac_link_down,

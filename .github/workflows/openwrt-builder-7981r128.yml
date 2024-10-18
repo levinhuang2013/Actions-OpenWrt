@@ -82,7 +82,7 @@ jobs:
       id: package
       run: |
         cd openwrt
-        sudo -E apt-get -qq install neofetch fastfetch
+        sudo -E apt-get -qq install neofetch
         echo -e "*******************neofetch*******************"
         neofetch
         echo -e "*******************uname -a*******************"

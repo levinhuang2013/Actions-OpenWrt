@@ -1540,8 +1540,8 @@ static void axienet_validate(struct phylink_config *config,
 		   __ETHTOOL_LINK_MODE_MASK_NBITS);
 }
 
-static int axienet_mac_link_state(struct phylink_config *config,
-				  struct phylink_link_state *state)
+static void axienet_mac_pcs_get_state(struct phylink_config *config,
+				      struct phylink_link_state *state)
 {
 	struct net_device *ndev = to_net_dev(config->dev);
 	struct axienet_local *lp = netdev_priv(ndev);
@@ -1566,8 +1566,6 @@ static int axienet_mac_link_state(struct phylink_config *config,
 
 	state->an_complete = 0;
 	state->duplex = 1;
-
-	return 1;
 }
 
 static void axienet_mac_an_restart(struct phylink_config *config)

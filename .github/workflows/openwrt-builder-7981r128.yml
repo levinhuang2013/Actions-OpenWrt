@@ -82,6 +82,20 @@ jobs:
       id: package
       run: |
         cd openwrt
+        sudo -E apt-get -qq install neofetch fastfetch
+        echo -e "*******************neofetch*******************"
+        neofetch
+        echo -e "*******************fastfetch*******************"
+        fastfetch
+        echo -e "*******************uname -a*******************"
+        uname -a
+        echo -e "*******************lsblk*******************"
+        lsblk
+        echo -e "*******************df -Th*******************"
+        df -Th
+        echo -e "*******************fdisk -l*******************"
+        sudo fdisk -l
+        echo -e "*******************make*******************"
         make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
@@ -131,7 +145,7 @@ jobs:
       run: |
         echo "release_tag=immortalwrt-mt798x${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.8.1, openclash(dev), passwall(ss-rust, trojan-plus), adguardhome, openappfilter, netspeedtest, samba, msd-lite, rndis, usb2, usb3, w/o memory shrink, zerotier, luci-app-mtwifi-cfg, ttyd, diskman, mt_wifi-v7.6.7.2" >> release.txt
+        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.8.1, openclash(dev), passwall(ss-rust, trojan-plus), adguardhome, netspeedtest, samba, msd-lite, rndis, usb2, usb3, w/o memory shrink, zerotier, luci-app-mtwifi-cfg, ttyd, diskman, mt_wifi-v7.6.7.2" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

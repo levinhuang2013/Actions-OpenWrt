@@ -131,7 +131,7 @@ jobs:
       run: |
         echo "release_tag=immortalwrt-mt798x${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.2.1, rtl8221b: 0x0027-0x00a4-0x321d, luci-app-mtwifi-cfg, ttyd, diskman, mt_wifi-v7.6.7.2, disable rtl8221b led polar d044" >> release.txt
+        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.2.1, rtl8221b: 0x00a7-0x00a4-0x321d, luci-app-mtwifi-cfg, ttyd, diskman, mt_wifi-v7.6.7.2, disable rtl8221b led polar d044, enable wlan2g wlan5g sys led" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

@@ -21,6 +21,14 @@ sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generat
 
 # Add packages
 #git clone -b js https://github.com/gngpp/luci-theme-design package/luci-theme-design
+git clone https://github.com/rufengsuixing/luci-app-adguardhome package/luci-app-adguardhome
+#git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-webdav
+#git clone https://github.com/sirpdboy/netspeedtest package/homebox
+git clone https://github.com/destan19/OpenAppFilter package/openappfilter
+rm -rf feeds/packages/net/open-app-filter
+
+# Add packages
+#git clone -b js https://github.com/gngpp/luci-theme-design package/luci-theme-design
 #git clone https://github.com/rufengsuixing/luci-app-adguardhome package/luci-app-adguardhome
 #git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-webdav
 #git clone https://github.com/sirpdboy/netspeedtest package/homebox
@@ -39,3 +47,15 @@ sed -i 's/ImmortalWrt-5G/CLX5G/g' package/mtk/applications/mtwifi-cfg/files/mtwi
 #curl -sfL -o ./clash_tun.gz https://github.com/vernesong/OpenClash/raw/core/dev/premium/clash-linux-arm64-2023.08.17-13-gdcc8d87.gz
 #gzip -d clash_tun.gz
 #chmod +x ./clash* ; rm -rf ./*.gz
+
+##-----------------Add OpenClash dev core------------------
+curl -sL -m 30 --retry 2 https://raw.githubusercontent.com/vernesong/OpenClash/core/master/dev/clash-linux-arm64.tar.gz -o /tmp/clash.tar.gz
+tar zxvf /tmp/clash.tar.gz -C /tmp >/dev/null 2>&1
+chmod +x /tmp/clash >/dev/null 2>&1
+mkdir -p feeds/luci/applications/luci-app-openclash/root/etc/openclash/core
+mv /tmp/clash feeds/luci/applications/luci-app-openclash/root/etc/openclash/core/clash >/dev/null 2>&1
+rm -rf /tmp/clash.tar.gz >/dev/null 2>&1
+##-----------------Delete DDNS's examples-----------------
+sed -i '/myddns_ipv4/,$d' feeds/packages/net/ddns-scripts/files/etc/config/ddns
+##-----------------Manually set CPU frequency for MT7986A-----------------
+sed -i '/"mediatek"\/\*|\"mvebu"\/\*/{n; s/.*/\tcpu_freq="2.0GHz" ;;/}' package/emortal/autocore/files/generic/cpuinfo

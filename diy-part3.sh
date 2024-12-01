@@ -34,22 +34,13 @@ sed -i 's/ImmortalWrt-5G/CLX5G/g' package/mtk/applications/mtwifi-cfg/files/mtwi
 #sed -i 's/MT7981_AX3000_5G/ImmortalWrt-5G/g' package/mtk/drivers/wifi-profile/files/mt7981/mt7981.dbdc.b1.dat
 
 # Add OpenClash DEV/TUN core
-#cd ./feeds/luci/applications/luci-app-openclash/root/etc/openclash/
-#mkdir ./core && cd ./core
-#curl -sfL -o ./dev.tar.gz https://github.com/vernesong/OpenClash/raw/core/dev/dev/clash-linux-arm64.tar.gz
-#tar -zxf ./dev.tar.gz
+cd ./feeds/luci/applications/luci-app-openclash/root/etc/openclash/
+mkdir ./core && cd ./core
+curl -sfL -o ./dev.tar.gz https://github.com/vernesong/OpenClash/raw/core/dev/dev/clash-linux-arm64.tar.gz
+tar -zxf ./dev.tar.gz
 #curl -sfL -o ./clash_tun.gz https://github.com/vernesong/OpenClash/raw/core/dev/premium/clash-linux-arm64-2023.08.17-13-gdcc8d87.gz
 #gzip -d clash_tun.gz
-#chmod +x ./clash* ; rm -rf ./*.gz
+chmod +x ./clash* ; rm -rf ./*.gz
 
-##-----------------Add OpenClash dev core------------------
-curl -sL -m 30 --retry 2 https://raw.githubusercontent.com/vernesong/OpenClash/core/master/dev/clash-linux-arm64.tar.gz -o /tmp/clash.tar.gz
-tar zxvf /tmp/clash.tar.gz -C /tmp >/dev/null 2>&1
-chmod +x /tmp/clash >/dev/null 2>&1
-mkdir -p feeds/luci/applications/luci-app-openclash/root/etc/openclash/core
-mv /tmp/clash feeds/luci/applications/luci-app-openclash/root/etc/openclash/core/clash >/dev/null 2>&1
-rm -rf /tmp/clash.tar.gz >/dev/null 2>&1
 ##-----------------Delete DDNS's examples-----------------
 sed -i '/myddns_ipv4/,$d' feeds/packages/net/ddns-scripts/files/etc/config/ddns
-##-----------------Manually set CPU frequency for MT7986A-----------------
-sed -i '/"mediatek"\/\*|\"mvebu"\/\*/{n; s/.*/\tcpu_freq="2.0GHz" ;;/}' package/emortal/autocore/files/generic/cpuinfo

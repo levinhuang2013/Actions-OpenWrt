@@ -41,6 +41,3 @@ tar -zxf ./dev.tar.gz
 #curl -sfL -o ./clash_tun.gz https://github.com/vernesong/OpenClash/raw/core/dev/premium/clash-linux-arm64-2023.08.17-13-gdcc8d87.gz
 #gzip -d clash_tun.gz
 chmod +x ./clash* ; rm -rf ./*.gz
-
-##-----------------Delete DDNS's examples-----------------
-sed -i '/myddns_ipv4/,$d' feeds/packages/net/ddns-scripts/files/etc/config/ddns

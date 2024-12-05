@@ -26,6 +26,8 @@ git clone https://github.com/rufengsuixing/luci-app-adguardhome package/luci-app
 #git clone https://github.com/sirpdboy/netspeedtest package/homebox
 git clone https://github.com/destan19/OpenAppFilter package/openappfilter
 rm -rf feeds/packages/net/open-app-filter
+git clone https://github.com/linkease/nas-packages-luci package/nas-packages-luci
+git clone https://github.com/linkease/nas-packages package/nas-packages
 
 # Modify default WiFi SSID
 sed -i 's/ImmortalWrt-2.4G/CLX2.4G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh

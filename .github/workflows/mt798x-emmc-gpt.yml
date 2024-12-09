@@ -10,7 +10,7 @@
 # See /LICENSE for more information.
 #
 
-name: mt7986-emmc-fip-gpt-bl2
+name: mt798x-emmc-gpt
 
 on:
   repository_dispatch:
@@ -21,7 +21,7 @@ env:
   REPO_BRANCH: emmc
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
-  DEVICE_NAME: lunzn_s20p_emmc_fip
+  DEVICE_NAME: mt798x-emmc-gpt
   TZ: Asia/Shanghai
 
 jobs:
@@ -72,8 +72,7 @@ jobs:
         uname -a
         echo -e "$(nproc) thread compile"
         sudo apt install gcc-aarch64-linux-gnu device-tree-compiler qemu-user-static
-        cd atf-20231013-0ea67d76a/tools/dev/gpt_editor
-        ./generate_gpt.sh
+        ./atf-20231013-0ea67d76a/tools/dev/gpt_editor/generate_gpt.sh
         echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
         

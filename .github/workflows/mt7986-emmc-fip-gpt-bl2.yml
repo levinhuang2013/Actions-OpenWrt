@@ -17,8 +17,8 @@ on:
   workflow_dispatch:
 
 env:
-  REPO_URL: https://github.com/levinhuang2013/bl-mt798x
-  REPO_BRANCH: master
+  REPO_URL: https://github.com/lgs2007m/bl-mt798x
+  REPO_BRANCH: emmc
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
   DEVICE_NAME: lunzn_s20p_emmc_fip
@@ -72,7 +72,8 @@ jobs:
         uname -a
         echo -e "$(nproc) thread compile"
         sudo apt install gcc-aarch64-linux-gnu device-tree-compiler qemu-user-static
-        SOC=mt7986 BOARD=lunzn_s20p ./build.sh
+        cd atf-20231013-0ea67d76a/tools/dev/gpt_editor
+        ./generate_gpt.sh
         echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
         
@@ -85,9 +86,7 @@ jobs:
       if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: | 
         cd openwrt
-        cp atf-20220606-637ba581b/.config output/mt7986_lunzn_s20p_defconfig-atf
-        cp uboot-mtk-20220606/.config output/mt7986_lunzn_s20p_defconfig-uboot
-        cp uboot-mtk-20220606/arch/arm/dts/mt7986a-lunzn_s20p.dts output/mt7986a-lunzn_s20p.dts
+        cp atf-20231013-0ea67d76a/tools/dev/gpt_editor/gpt_output/* output/
         cd output
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT

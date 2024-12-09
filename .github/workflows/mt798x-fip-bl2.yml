@@ -10,7 +10,7 @@
 # See /LICENSE for more information.
 #
 
-name: mt798x-fip-bl2
+name: bl-mt798x-fip-bl2
 
 on:
   repository_dispatch:
@@ -21,7 +21,7 @@ env:
   REPO_BRANCH: master
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
-  DEVICE_NAME: lunzn_s20p_emmc_fip
+  DEVICE_NAME: bl-mt798x-lunzn_s20p_emmc_fip
   TZ: Asia/Shanghai
 
 jobs:
@@ -103,9 +103,9 @@ jobs:
       id: tag
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
-        echo "release_tag=bl-mt798x-${{ env.DEVICE_NAME }}-${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
+        echo "release_tag=${{ env.DEVICE_NAME }}-${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "bl-mt798x-${{ env.DEVICE_NAME }}" >> release.txt
+        echo "${{ env.DEVICE_NAME }}" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
         
     - name: Upload firmware to release

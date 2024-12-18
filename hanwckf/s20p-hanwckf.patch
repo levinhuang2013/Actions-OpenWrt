@@ -1,0 +1,900 @@
+diff --git a/feeds.conf.default b/feeds.conf.default
+index 9eece6fea2..12c9724418 100644
+--- a/feeds.conf.default
++++ b/feeds.conf.default
+@@ -1,4 +1,4 @@
+-src-git-full packages https://github.com/immortalwrt/packages.git;openwrt-21.02
+-src-git-full luci https://github.com/immortalwrt/luci.git;openwrt-21.02
++src-git-full packages https://github.com/lgs2007m/immortalwrt-mt798x-packages.git;openwrt-21.02
++src-git-full luci https://github.com/lgs2007m/immortalwrt-mt798x-luci.git;openwrt-21.02
+ src-git-full routing https://github.com/openwrt/routing.git;openwrt-21.02
+ src-git-full telephony https://github.com/openwrt/telephony.git;openwrt-21.02
+diff --git a/package/boot/uboot-envtools/files/mediatek b/package/boot/uboot-envtools/files/mediatek
+index bcd710aae7..341cfc05c9 100644
+--- a/package/boot/uboot-envtools/files/mediatek
++++ b/package/boot/uboot-envtools/files/mediatek
+@@ -16,6 +16,7 @@ case "$board" in
+ cmcc,rax3000m-emmc |\
+ cmcc,xr30-emmc |\
+ glinet,gl-mt6000 |\
++clx,s20p* |\
+ jdcloud,re-cp-03)
+ 	env_dev=$(find_mmc_part "u-boot-env")
+ 	[ -n "$env_dev" ] && ubootenv_add_uci_config "$env_dev" "0" "0x80000"
+diff --git a/package/emortal/autocore/files/generic/cpuinfo b/package/emortal/autocore/files/generic/cpuinfo
+index 98e83b0cf0..9aa7989ed1 100755
+--- a/package/emortal/autocore/files/generic/cpuinfo
++++ b/package/emortal/autocore/files/generic/cpuinfo
+@@ -21,8 +21,12 @@ case "$DISTRIB_TARGET" in
+ 	cpu_freq="$(( $(vcgencmd measure_clock arm | awk -F '=' '{print $2}') / 1000000 ))Mhz" ;;
+ "bcm53xx"/*)
+ 	cpu_freq="$(nvram get clkfreq | awk -F ',' '{print $1}')MHz" ;;
++"mediatek/mt7981")
++	cpu_freq="1.3GHz" ;;
++"mediatek/mt7986")
++	cpu_freq="2.0GHz" ;;
+ "mediatek"/*|"mvebu"/*)
+-	cpu_freq="" ;;
++	cpu_freq="$(mhz | awk -F 'cpu_MHz=' '{printf("%.fMHz",$2)}')" ;;
+ "mvebu/cortexa72")
+ 	cpu_freq="$(awk '{printf("%.fMHz", $0 / 1000)}' "$CPUFREQ_PATH/policy0/cpuinfo_cur_freq")"
+ 	big_cpu_freq="$(awk '{printf("%.fMHz ", $0 / 1000)}' "$CPUFREQ_PATH/policy2/cpuinfo_cur_freq")"
+diff --git a/package/mtk/applications/mtk-smp/files/smp.sh b/package/mtk/applications/mtk-smp/files/smp.sh
+index 5607688ccd..73a5e69fef 100755
+--- a/package/mtk/applications/mtk-smp/files/smp.sh
++++ b/package/mtk/applications/mtk-smp/files/smp.sh
+@@ -738,6 +738,7 @@ setup_model()
+ 	netcore,n60 |\
+ 	glinet,gl-mt6000|\
+ 	ruijie,rg-x60-pro* |\
++	clx,s20p* |\
+ 	jdcloud,re-cp-03 |\
+ 	tplink,tl-xdr608* |\
+ 	zyxel,ex5700 |\
+diff --git a/target/linux/mediatek/files-5.4/arch/arm64/boot/dts/mediatek/mt7986a-clx-s20p-dsa.dts b/target/linux/mediatek/files-5.4/arch/arm64/boot/dts/mediatek/mt7986a-clx-s20p-dsa.dts
+new file mode 100644
+index 0000000000..9513287667
+--- /dev/null
++++ b/target/linux/mediatek/files-5.4/arch/arm64/boot/dts/mediatek/mt7986a-clx-s20p-dsa.dts
+@@ -0,0 +1,341 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++
++/dts-v1/;
++#include "mt7986a.dtsi"
++#include "mt7986a-pinctrl.dtsi"
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/leds/common.h>
++
++/ {
++	model = "CLX S20P";
++	compatible = "clx,s20p-dsa", "mediatek,mt7986a-emmc-rfb";
++
++	aliases {
++		led-boot = &led_sys;
++		led-failsafe = &led_sys;
++		led-running = &led_sys;
++		led-upgrade = &led_sys;
++	};
++
++	chosen {
++		bootargs = "console=ttyS0,115200n1 loglevel=8 \
++			    earlycon=uart8250,mmio32,0x11002000 \
++			    root=PARTLABEL=rootfs rootwait rootfstype=squashfs,f2fs";
++	};
++
++	memory {
++		reg = <0 0x40000000 0 0x80000000>;
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++
++		button-reset {
++			label = "reset";
++			linux,code = <KEY_RESTART>;
++			gpios = <&pio 16 GPIO_ACTIVE_LOW>;
++		};
++	};
++
++	gpio-leds {
++		compatible = "gpio-leds";
++
++		led_wlan5g: led_wlan5g {
++			label = "wlan5g";
++			gpios = <&pio 2 GPIO_ACTIVE_LOW>;
++		};
++
++		led_wlan2g: led_wlan2g {
++			label = "wlan2g";
++			gpios = <&pio 1 GPIO_ACTIVE_LOW>;
++		};
++
++		led_sys: led_sys {
++			label = "sys";
++			gpios = <&pio 22 GPIO_ACTIVE_LOW>;
++		};
++	};
++
++	reg_1p8v: regulator-1p8v {
++		compatible = "regulator-fixed";
++		regulator-name = "fixed-1.8V";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	reg_3p3v: regulator-3p3v {
++		compatible = "regulator-fixed";
++		regulator-name = "fixed-3.3V";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	usb_vbus: regulator-usb-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "usb_vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		gpios = <&pio 17 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		regulator-boot-on;
++	};
++};
++
++&eth {
++	status = "okay";
++
++	gmac0: mac@0 {
++		compatible = "mediatek,eth-mac";
++		reg = <0>;
++		phy-mode = "2500base-x";
++		ext-phy-reg = <5>;
++		ext-phy-reset-gpios = <&pio 48 GPIO_ACTIVE_HIGH>;
++		fixed-link {
++			speed = <2500>;
++			full-duplex;
++			pause;
++		};
++	};
++
++	gmac1: mac@1 {
++		compatible = "mediatek,eth-mac";
++		reg = <1>;
++		phy-mode = "2500base-x";
++		ext-phy-reg = <7>;
++		ext-phy-reset-gpios = <&pio 6 GPIO_ACTIVE_HIGH>;
++		fixed-link {
++			speed = <2500>;
++			full-duplex;
++			pause;
++		};
++	};
++
++	mdio: mdio-bus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		phy5: phy@5 {
++			compatible = "ethernet-phy-ieee802.3-c45";
++			reg = <5>;
++		};
++
++		phy7: phy@7 {
++			compatible = "ethernet-phy-ieee802.3-c45";
++			reg = <7>;
++		};
++
++		switch@0 {
++			compatible = "mediatek,mt7531";
++			reg = <31>;
++			reset-gpios = <&pio 5 GPIO_ACTIVE_HIGH>;
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				port@0 {
++					reg = <0>;
++					label = "lan5";
++				};
++
++				port@1 {
++					reg = <1>;
++					label = "lan4";
++				};
++
++				port@2 {
++					reg = <2>;
++					label = "lan3";
++				};
++
++				port@3 {
++					reg = <3>;
++					label = "lan2";
++				};
++
++				port@4 {
++					reg = <4>;
++					label = "lan1";
++				};
++
++				port@5 {
++					reg = <5>;
++					label = "lan6";
++					phy-mode = "2500base-x";
++
++					fixed-link {
++						speed = <2500>;
++						full-duplex;
++						pause;
++					};
++				};
++
++				port@6 {
++					reg = <6>;
++					label = "cpu";
++					ethernet = <&gmac0>;
++					phy-mode = "2500base-x";
++
++					fixed-link {
++						speed = <2500>;
++						full-duplex;
++						pause;
++					};
++				};
++			};
++		};
++	};
++};
++
++&hnat {
++	mtketh-wan = "eth1";
++	mtketh-lan = "lan";
++	mtketh-max-gmac = <2>;
++	ext-devices-prefix = "usb", "wwan";
++	ext-devices = "wwan0_0","wwan0_1","wwan0.1","wwan0.2";
++	status = "okay";
++};
++
++&pcie0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pcie0_pins>;
++	status = "okay";
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&watchdog {
++	status = "okay";
++};
++
++&wbsys {
++	pinctrl-names = "default", "dbdc";
++	pinctrl-0 = <&wf_2g_5g_pins>;
++	pinctrl-1 = <&wf_dbdc_pins>;
++	status = "okay";
++};
++
++&xhci {
++	vusb33-supply = <&reg_3p3v>;
++	vbus-supply = <&usb_vbus>;
++	status = "okay";
++};
++
++&mmc0 {
++	pinctrl-names = "default", "state_uhs";
++	pinctrl-0 = <&mmc0_pins_default>;
++	pinctrl-1 = <&mmc0_pins_uhs>;
++	bus-width = <8>;
++	max-frequency = <200000000>;
++	cap-mmc-highspeed;
++	mmc-hs200-1_8v;
++	mmc-hs400-1_8v;
++	hs400-ds-delay = <0x14014>;
++	vmmc-supply = <&reg_3p3v>;
++	vqmmc-supply = <&reg_1p8v>;
++	non-removable;
++	no-sd;
++	no-sdio;
++	status = "okay";
++};
++
++&pio {
++	mmc0_pins_default: mmc0-pins-default {
++		mux {
++			function = "flash";
++			groups = "emmc_51";
++		};
++		conf-cmd-dat {
++			pins = "EMMC_DATA_0", "EMMC_DATA_1", "EMMC_DATA_2",
++			       "EMMC_DATA_3", "EMMC_DATA_4", "EMMC_DATA_5",
++			       "EMMC_DATA_6", "EMMC_DATA_7", "EMMC_CMD";
++			input-enable;
++			drive-strength = <MTK_DRIVE_4mA>;
++			mediatek,pull-up-adv = <1>;
++		};
++		conf-clk {
++			pins = "EMMC_CK";
++			drive-strength = <MTK_DRIVE_6mA>;
++			mediatek,pull-down-adv = <2>;
++		};
++		conf-ds {
++			pins = "EMMC_DSL";
++			mediatek,pull-down-adv = <2>;
++		};
++		conf-rst {
++			pins = "EMMC_RSTB";
++			drive-strength = <MTK_DRIVE_4mA>;
++			mediatek,pull-up-adv = <1>;
++		};
++	};
++
++	mmc0_pins_uhs: mmc0-uhs-pins {
++		mux {
++			function = "flash";
++			groups = "emmc_51";
++		};
++		conf-cmd-dat {
++			pins = "EMMC_DATA_0", "EMMC_DATA_1", "EMMC_DATA_2",
++			       "EMMC_DATA_3", "EMMC_DATA_4", "EMMC_DATA_5",
++			       "EMMC_DATA_6", "EMMC_DATA_7", "EMMC_CMD";
++			input-enable;
++			drive-strength = <MTK_DRIVE_4mA>;
++			mediatek,pull-up-adv = <1>;
++		};
++		conf-clk {
++			pins = "EMMC_CK";
++			drive-strength = <MTK_DRIVE_6mA>;
++			mediatek,pull-down-adv = <2>;
++		};
++		conf-ds {
++			pins = "EMMC_DSL";
++			mediatek,pull-down-adv = <2>;
++		};
++		conf-rst {
++			pins = "EMMC_RSTB";
++			drive-strength = <MTK_DRIVE_4mA>;
++			mediatek,pull-up-adv = <1>;
++		};
++	};
++
++	wf_2g_5g_pins: wf_2g_5g-pins {
++		mux {
++			function = "wifi";
++			groups = "wf_2g", "wf_5g";
++		};
++		conf {
++			pins = "WF0_HB1", "WF0_HB2", "WF0_HB3", "WF0_HB4",
++			       "WF0_HB0", "WF0_HB0_B", "WF0_HB5", "WF0_HB6",
++			       "WF0_HB7", "WF0_HB8", "WF0_HB9", "WF0_HB10",
++			       "WF0_TOP_CLK", "WF0_TOP_DATA", "WF1_HB1",
++			       "WF1_HB2", "WF1_HB3", "WF1_HB4", "WF1_HB0",
++			       "WF1_HB5", "WF1_HB6", "WF1_HB7", "WF1_HB8",
++			       "WF1_TOP_CLK", "WF1_TOP_DATA";
++			drive-strength = <MTK_DRIVE_4mA>;
++		};
++	};
++
++	wf_dbdc_pins: wf_dbdc-pins {
++		mux {
++			function = "wifi";
++			groups = "wf_dbdc";
++		};
++		conf {
++			pins = "WF0_HB1", "WF0_HB2", "WF0_HB3", "WF0_HB4",
++			       "WF0_HB0", "WF0_HB0_B", "WF0_HB5", "WF0_HB6",
++			       "WF0_HB7", "WF0_HB8", "WF0_HB9", "WF0_HB10",
++			       "WF0_TOP_CLK", "WF0_TOP_DATA", "WF1_HB1",
++			       "WF1_HB2", "WF1_HB3", "WF1_HB4", "WF1_HB0",
++			       "WF1_HB5", "WF1_HB6", "WF1_HB7", "WF1_HB8",
++			       "WF1_TOP_CLK", "WF1_TOP_DATA";
++			drive-strength = <MTK_DRIVE_4mA>;
++		};
++	};
++};
+diff --git a/target/linux/mediatek/files-5.4/arch/arm64/boot/dts/mediatek/mt7986a-clx-s20p-gsw.dts b/target/linux/mediatek/files-5.4/arch/arm64/boot/dts/mediatek/mt7986a-clx-s20p-gsw.dts
+new file mode 100644
+index 0000000000..82cb7b0909
+--- /dev/null
++++ b/target/linux/mediatek/files-5.4/arch/arm64/boot/dts/mediatek/mt7986a-clx-s20p-gsw.dts
+@@ -0,0 +1,321 @@
++// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++
++/dts-v1/;
++#include "mt7986a.dtsi"
++#include "mt7986a-pinctrl.dtsi"
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/leds/common.h>
++
++/ {
++	model = "CLX S20P";
++	compatible = "clx,s20p-gsw", "mediatek,mt7986a-emmc-rfb";
++
++	aliases {
++		led-boot = &led_sys;
++		led-failsafe = &led_sys;
++		led-running = &led_sys;
++		led-upgrade = &led_sys;
++	};
++
++	chosen {
++		bootargs = "console=ttyS0,115200n1 loglevel=8 \
++			    earlycon=uart8250,mmio32,0x11002000 \
++			    root=PARTLABEL=rootfs rootwait rootfstype=squashfs,f2fs";
++	};
++
++	memory {
++		reg = <0 0x40000000 0 0x80000000>;
++	};
++
++	gsw: gsw@0 {
++		compatible = "mediatek,mt753x";
++		mediatek,ethsys = <&ethsys>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++
++		button-reset {
++			label = "reset";
++			linux,code = <KEY_RESTART>;
++			gpios = <&pio 16 GPIO_ACTIVE_LOW>;
++		};
++	};
++
++	gpio-leds {
++		compatible = "gpio-leds";
++
++		led_wlan5g: led_wlan5g {
++			label = "wlan5g";
++			gpios = <&pio 2 GPIO_ACTIVE_LOW>;
++		};
++
++		led_wlan2g: led_wlan2g {
++			label = "wlan2g";
++			gpios = <&pio 1 GPIO_ACTIVE_LOW>;
++		};
++
++		led_sys: led_sys {
++			label = "sys";
++			gpios = <&pio 22 GPIO_ACTIVE_LOW>;
++		};
++	};
++
++	reg_1p8v: regulator-1p8v {
++		compatible = "regulator-fixed";
++		regulator-name = "fixed-1.8V";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	reg_3p3v: regulator-3p3v {
++		compatible = "regulator-fixed";
++		regulator-name = "fixed-3.3V";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	usb_vbus: regulator-usb-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "usb_vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		gpios = <&pio 17 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		regulator-boot-on;
++	};
++};
++
++&eth {
++	status = "okay";
++
++	gmac0: mac@0 {
++		compatible = "mediatek,eth-mac";
++		reg = <0>;
++		phy-mode = "2500base-x";
++		ext-phy-reg = <5>;
++		ext-phy-reset-gpios = <&pio 48 GPIO_ACTIVE_HIGH>;
++		fixed-link {
++			speed = <2500>;
++			full-duplex;
++			pause;
++		};
++	};
++
++	gmac1: mac@1 {
++		compatible = "mediatek,eth-mac";
++		reg = <1>;
++		phy-mode = "2500base-x";
++		ext-phy-reg = <7>;
++		ext-phy-reset-gpios = <&pio 6 GPIO_ACTIVE_HIGH>;
++		fixed-link {
++			speed = <2500>;
++			full-duplex;
++			pause;
++		};
++	};
++
++	mdio: mdio-bus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		phy5: phy@5 {
++			compatible = "ethernet-phy-ieee802.3-c45";
++			reg = <5>;
++		};
++
++		phy7: phy@7 {
++			compatible = "ethernet-phy-ieee802.3-c45";
++			reg = <7>;
++		};
++	};
++
++};
++
++&gsw {
++	mediatek,mdio = <&mdio>;
++	mediatek,portmap = "lllll";
++	mediatek,mdio_master_pinmux = <1>;
++	reset-gpios = <&pio 5 GPIO_ACTIVE_HIGH>;
++	interrupt-parent = <&pio>;
++	interrupts = <66 IRQ_TYPE_LEVEL_HIGH>;
++	status = "okay";
++
++	port5: port@5 {
++		compatible = "mediatek,mt753x-port";
++		reg = <5>;
++		phy-mode = "sgmii";
++
++		fixed-link {
++			speed = <2500>;
++			full-duplex;
++		};
++	};
++
++	port6: port@6 {
++		compatible = "mediatek,mt753x-port";
++		/* mediatek,ssc-on; */
++		reg = <6>;
++		phy-mode = "sgmii";
++
++		fixed-link {
++			speed = <2500>;
++			full-duplex;
++		};
++	};
++};
++
++&hnat {
++	mtketh-wan = "eth1";
++	mtketh-lan = "eth0";
++	mtketh-max-gmac = <2>;
++	ext-devices-prefix = "usb", "wwan";
++	ext-devices = "wwan0_0","wwan0_1","wwan0.1","wwan0.2";
++	status = "okay";
++};
++
++&pcie0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pcie0_pins>;
++	status = "okay";
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&watchdog {
++	status = "okay";
++};
++
++&wbsys {
++	pinctrl-names = "default", "dbdc";
++	pinctrl-0 = <&wf_2g_5g_pins>;
++	pinctrl-1 = <&wf_dbdc_pins>;
++	status = "okay";
++};
++
++&xhci {
++	vusb33-supply = <&reg_3p3v>;
++	vbus-supply = <&usb_vbus>;
++	status = "okay";
++};
++
++&mmc0 {
++	pinctrl-names = "default", "state_uhs";
++	pinctrl-0 = <&mmc0_pins_default>;
++	pinctrl-1 = <&mmc0_pins_uhs>;
++	bus-width = <8>;
++	max-frequency = <200000000>;
++	cap-mmc-highspeed;
++	mmc-hs200-1_8v;
++	mmc-hs400-1_8v;
++	hs400-ds-delay = <0x14014>;
++	vmmc-supply = <&reg_3p3v>;
++	vqmmc-supply = <&reg_1p8v>;
++	non-removable;
++	no-sd;
++	no-sdio;
++	status = "okay";
++};
++
++&pio {
++	mmc0_pins_default: mmc0-pins-default {
++		mux {
++			function = "flash";
++			groups = "emmc_51";
++		};
++		conf-cmd-dat {
++			pins = "EMMC_DATA_0", "EMMC_DATA_1", "EMMC_DATA_2",
++			       "EMMC_DATA_3", "EMMC_DATA_4", "EMMC_DATA_5",
++			       "EMMC_DATA_6", "EMMC_DATA_7", "EMMC_CMD";
++			input-enable;
++			drive-strength = <MTK_DRIVE_4mA>;
++			mediatek,pull-up-adv = <1>;
++		};
++		conf-clk {
++			pins = "EMMC_CK";
++			drive-strength = <MTK_DRIVE_6mA>;
++			mediatek,pull-down-adv = <2>;
++		};
++		conf-ds {
++			pins = "EMMC_DSL";
++			mediatek,pull-down-adv = <2>;
++		};
++		conf-rst {
++			pins = "EMMC_RSTB";
++			drive-strength = <MTK_DRIVE_4mA>;
++			mediatek,pull-up-adv = <1>;
++		};
++	};
++
++	mmc0_pins_uhs: mmc0-uhs-pins {
++		mux {
++			function = "flash";
++			groups = "emmc_51";
++		};
++		conf-cmd-dat {
++			pins = "EMMC_DATA_0", "EMMC_DATA_1", "EMMC_DATA_2",
++			       "EMMC_DATA_3", "EMMC_DATA_4", "EMMC_DATA_5",
++			       "EMMC_DATA_6", "EMMC_DATA_7", "EMMC_CMD";
++			input-enable;
++			drive-strength = <MTK_DRIVE_4mA>;
++			mediatek,pull-up-adv = <1>;
++		};
++		conf-clk {
++			pins = "EMMC_CK";
++			drive-strength = <MTK_DRIVE_6mA>;
++			mediatek,pull-down-adv = <2>;
++		};
++		conf-ds {
++			pins = "EMMC_DSL";
++			mediatek,pull-down-adv = <2>;
++		};
++		conf-rst {
++			pins = "EMMC_RSTB";
++			drive-strength = <MTK_DRIVE_4mA>;
++			mediatek,pull-up-adv = <1>;
++		};
++	};
++
++	wf_2g_5g_pins: wf_2g_5g-pins {
++		mux {
++			function = "wifi";
++			groups = "wf_2g", "wf_5g";
++		};
++		conf {
++			pins = "WF0_HB1", "WF0_HB2", "WF0_HB3", "WF0_HB4",
++			       "WF0_HB0", "WF0_HB0_B", "WF0_HB5", "WF0_HB6",
++			       "WF0_HB7", "WF0_HB8", "WF0_HB9", "WF0_HB10",
++			       "WF0_TOP_CLK", "WF0_TOP_DATA", "WF1_HB1",
++			       "WF1_HB2", "WF1_HB3", "WF1_HB4", "WF1_HB0",
++			       "WF1_HB5", "WF1_HB6", "WF1_HB7", "WF1_HB8",
++			       "WF1_TOP_CLK", "WF1_TOP_DATA";
++			drive-strength = <MTK_DRIVE_4mA>;
++		};
++	};
++
++	wf_dbdc_pins: wf_dbdc-pins {
++		mux {
++			function = "wifi";
++			groups = "wf_dbdc";
++		};
++		conf {
++			pins = "WF0_HB1", "WF0_HB2", "WF0_HB3", "WF0_HB4",
++			       "WF0_HB0", "WF0_HB0_B", "WF0_HB5", "WF0_HB6",
++			       "WF0_HB7", "WF0_HB8", "WF0_HB9", "WF0_HB10",
++			       "WF0_TOP_CLK", "WF0_TOP_DATA", "WF1_HB1",
++			       "WF1_HB2", "WF1_HB3", "WF1_HB4", "WF1_HB0",
++			       "WF1_HB5", "WF1_HB6", "WF1_HB7", "WF1_HB8",
++			       "WF1_TOP_CLK", "WF1_TOP_DATA";
++			drive-strength = <MTK_DRIVE_4mA>;
++		};
++	};
++};
+diff --git a/target/linux/mediatek/files-5.4/drivers/net/ethernet/mediatek/mtk_eth_rtl822x.c b/target/linux/mediatek/files-5.4/drivers/net/ethernet/mediatek/mtk_eth_rtl822x.c
+index 168aca7d21..5f213c1786 100755
+--- a/target/linux/mediatek/files-5.4/drivers/net/ethernet/mediatek/mtk_eth_rtl822x.c
++++ b/target/linux/mediatek/files-5.4/drivers/net/ethernet/mediatek/mtk_eth_rtl822x.c
+@@ -141,7 +141,9 @@ void mtk_soc_mmd_write(int phyad, int devad, int regad, int val)
+ static int rtl822x_init(struct mtk_eth *eth, int addr)
+ {
+ 	u32 val;
+-	
++	struct device_node *np1;
++	struct device_node *np2;
++
+ 	val = mtk_mmd_read(eth, addr, 30, 0x75F3);
+ 	val &= ~(1 << 0);
+ 	mtk_mmd_write(eth, addr, 30, 0x75F3, val);
+@@ -158,17 +160,31 @@ static int rtl822x_init(struct mtk_eth *eth, int addr)
+ 	val |= (1 << 9);
+ 	mtk_mmd_write(eth, addr, 7, 0, val);
+ 
+-    msleep(500);
++	msleep(500);
+ 
+-	// led0 at 10/100/1000/2.5G
+-	mtk_mmd_write(eth, addr, 31, 0xd032, 0x0027);
+-	// led on time = 400ms, duty = 12.5%, freq = 60ms, Enable 10M LPI, modeA, act
+-	mtk_mmd_write(eth, addr, 31, 0xd040, 0x321f);
+-	// all led enable, polar = low
+-	mtk_mmd_write(eth, addr, 31, 0xd044, 0xf8);
++	np1 = of_find_compatible_node(NULL, NULL, "clx,s20p-dsa");
++	np2 = of_find_compatible_node(NULL, NULL, "clx,s20p-gsw");
++	if ( np1 || np2 ) {
++		// led0 at 10/100/1000/2.5G
++		mtk_mmd_write(eth, addr, 31, 0xd032, 0x0027);
++		// led1 at 10/100
++		mtk_mmd_write(eth, addr, 31, 0xd034, 0x0003);
++		// led on time = 400ms, duty = 12.5%, freq = 60ms, Enable 10M LPI, modeA, act
++		mtk_mmd_write(eth, addr, 31, 0xd040, 0x321f);
++		// all led enable, polar = low
++		//mtk_mmd_write(eth, addr, 31, 0xd044, 0xf8);
++	}
++	else {
++		// led0 at 10/100/1000/2.5G
++		mtk_mmd_write(eth, addr, 31, 0xd032, 0x0027);
++		// led on time = 400ms, duty = 12.5%, freq = 60ms, Enable 10M LPI, modeA, act
++		mtk_mmd_write(eth, addr, 31, 0xd040, 0x321f);
++		// all led enable, polar = low
++		mtk_mmd_write(eth, addr, 31, 0xd044, 0xf8);
++	}
+ 
+ 	msleep(500);
+-    	
++
+ 	dev_info(eth->dev, "RTL822x init success!\n");
+ 
+ 	Rtl8226b_phy_init((HANDLE){eth, addr}, NULL, 1);
+diff --git a/target/linux/mediatek/image/mt7986.mk b/target/linux/mediatek/image/mt7986.mk
+index 6c37da0d99..6c7f20930b 100644
+--- a/target/linux/mediatek/image/mt7986.mk
++++ b/target/linux/mediatek/image/mt7986.mk
+@@ -450,6 +450,34 @@ define Device/BPI-R3MINI-EMMC
+ endef
+ TARGET_DEVICES += BPI-R3MINI-EMMC
+ 
++define Device/clx_s20p-dsa
++  DEVICE_VENDOR := CLX
++  DEVICE_MODEL := S20P DSA
++  DEVICE_DTS := mt7986a-clx-s20p-dsa
++  DEVICE_DTS_DIR := $(DTS_DIR)/mediatek
++  SUPPORTED_DEVICES := clx,s20p-dsa
++  DEVICE_PACKAGES := $(MT7986_USB_PKGS) $(MT7986_WWAN_PKGS) \
++		     mkf2fs e2fsprogs blkid blockdev losetup kmod-fs-ext4 \
++		     kmod-mmc kmod-fs-f2fs kmod-fs-vfat kmod-nls-cp437 \
++		     kmod-nls-iso8859-1
++  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
++endef
++TARGET_DEVICES += clx_s20p-dsa
++
++define Device/clx_s20p-gsw
++  DEVICE_VENDOR := CLX
++  DEVICE_MODEL := S20P GSW
++  DEVICE_DTS := mt7986a-clx-s20p-gsw
++  DEVICE_DTS_DIR := $(DTS_DIR)/mediatek
++  SUPPORTED_DEVICES := clx,s20p-gsw
++  DEVICE_PACKAGES := $(MT7986_USB_PKGS) $(MT7986_WWAN_PKGS) \
++		     mkf2fs e2fsprogs blkid blockdev losetup kmod-fs-ext4 \
++		     kmod-mmc kmod-fs-f2fs kmod-fs-vfat kmod-nls-cp437 \
++		     kmod-nls-iso8859-1
++  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
++endef
++TARGET_DEVICES += clx_s20p-gsw
++
+ define Device/jdcloud_re-cp-03
+   DEVICE_VENDOR := JDCloud
+   DEVICE_MODEL := RE-CP-03
+diff --git a/target/linux/mediatek/mt7986/base-files/etc/board.d/01_leds b/target/linux/mediatek/mt7986/base-files/etc/board.d/01_leds
+index b80dfc82ba..108fac8520 100755
+--- a/target/linux/mediatek/mt7986/base-files/etc/board.d/01_leds
++++ b/target/linux/mediatek/mt7986/base-files/etc/board.d/01_leds
+@@ -9,6 +9,11 @@ board=$(board_name)
+ board_config_update
+ 
+ case $board in
++clx,s20p*)
++	ucidef_set_led_netdev "wlan5g" "5G" "wlan5g" "rax0"
++	ucidef_set_led_netdev "wlan2g" "2.4G" "wlan2g" "ra0"
++	ucidef_set_led_timer "sys" "SYS" "sys" "1000" "2000"
++	;;
+ xiaomi,redmi-router-ax6000*)
+ 	ucidef_set_led_default "status" "status" "rgb:status" "1"
+ 	ucidef_set_led_netdev "wan" "wan" "rgb:network" "eth1"
+diff --git a/target/linux/mediatek/mt7986/base-files/etc/board.d/02_network b/target/linux/mediatek/mt7986/base-files/etc/board.d/02_network
+index dfb1d50c3c..72b609e435 100755
+--- a/target/linux/mediatek/mt7986/base-files/etc/board.d/02_network
++++ b/target/linux/mediatek/mt7986/base-files/etc/board.d/02_network
+@@ -9,6 +9,14 @@ mediatek_setup_interfaces()
+ 	local board="$1"
+ 
+ 	case $board in
++	clx,s20p-dsa)
++		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4 lan5 lan6" eth1
++		;;
++	clx,s20p-gsw)
++		ucidef_set_interfaces_lan_wan "eth0" "eth1"
++		ucidef_add_switch "switch0" \
++			"0:lan:5" "1:lan:4" "2:lan:3" "3:lan:2" "4:lan:1" "5:lan:6" "6u@eth0"
++		;;
+ 	*fpga*)
+ 		ucidef_set_interfaces_lan_wan "eth0" "eth1"
+ 		ucidef_add_switch "switch0" \
+@@ -87,6 +95,7 @@ mediatek_setup_macs()
+ 			echo "MacAddress=$b1mac" >> ${b1dat}
+ 		fi
+  		;;
++	clx,s20p* |\
+ 	jdcloud,re-cp-03)
+ 		lan_mac=$(mmc_get_mac_binary factory 0x2a)
+ 		wan_mac=$(mmc_get_mac_binary factory 0x24)
+diff --git a/target/linux/mediatek/mt7986/base-files/lib/preinit/90_extract_caldata b/target/linux/mediatek/mt7986/base-files/lib/preinit/90_extract_caldata
+index b97d33e58e..3a5dc8c2c1 100644
+--- a/target/linux/mediatek/mt7986/base-files/lib/preinit/90_extract_caldata
++++ b/target/linux/mediatek/mt7986/base-files/lib/preinit/90_extract_caldata
+@@ -22,6 +22,11 @@ do_extract_caldata() {
+ 		caldata_validate && exit 0
+ 		caldata_extract_mmc "factory" 0x0 0x1000
+ 		;;
++	clx,s20p*)
++		FIRMWARE=MT7986_iPAiLNA_EEPROM_AX6000.bin
++		caldata_validate && exit 0
++		caldata_extract_mmc "factory" 0x0 0x1000
++		;;
+ 	esac
+ }
+ 
+diff --git a/target/linux/mediatek/mt7986/base-files/lib/upgrade/platform.sh b/target/linux/mediatek/mt7986/base-files/lib/upgrade/platform.sh
+index 7d1c2ff438..291602b20e 100755
+--- a/target/linux/mediatek/mt7986/base-files/lib/upgrade/platform.sh
++++ b/target/linux/mediatek/mt7986/base-files/lib/upgrade/platform.sh
+@@ -156,6 +156,7 @@ platform_do_upgrade() {
+ 		;;
+ 	bananapi,bpi-r3mini-emmc |\
+ 	glinet,gl-mt6000 |\
++	clx,s20p* |\
+ 	jdcloud,re-cp-03 |\
+ 	*emmc*)
+  		CI_KERNPART="kernel"
+@@ -183,6 +184,7 @@ platform_check_image() {
+ 	ruijie,rg-x60-pro* |\
+ 	*snand* |\
+ 	glinet,gl-mt6000 |\
++	clx,s20p* |\
+ 	jdcloud,re-cp-03 |\
+ 	tplink,tl-xdr608* |\
+ 	zyxel,ex5700 |\

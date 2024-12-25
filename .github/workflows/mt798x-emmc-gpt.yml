@@ -17,11 +17,11 @@ on:
   workflow_dispatch:
 
 env:
-  REPO_URL: https://github.com/lgs2007m/bl-mt798x
+  REPO_URL: https://github.com/zjuahhy/bl-mt798x
   REPO_BRANCH: emmc
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
-  DEVICE_NAME: bl-mt798x-emmc-gpt
+  DEVICE_NAME: bl-mt798x-sl3000-emmc-gpt
   TZ: Asia/Shanghai
 
 jobs:

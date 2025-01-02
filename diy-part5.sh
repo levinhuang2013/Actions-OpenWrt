@@ -28,6 +28,7 @@ git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-web
 #rm -rf feeds/packages/net/open-app-filter
 git clone https://github.com/linkease/nas-packages-luci package/nas-packages-luci
 git clone https://github.com/linkease/nas-packages package/nas-packages
+git clone https://github.com/AngelaCooljx/luci-theme-material3 package/material3
 
 # Modify default WiFi SSID
 sed -i 's/ImmortalWrt-2.4G/SL-3000/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh

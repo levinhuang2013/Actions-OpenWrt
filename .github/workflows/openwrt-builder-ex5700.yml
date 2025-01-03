@@ -18,9 +18,9 @@ on:
 
 env:
   REPO_URL: https://github.com/levinhuang2013/immortalwrt-mt798x
-  REPO_BRANCH: openwrt-21.02
+  REPO_BRANCH: ax7800
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: hanwckf/ex5700-ax7800-6g-0727.config
+  CONFIG_FILE: hanwckf/ex5700-new.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part4.sh
   UPLOAD_BIN_DIR: false
@@ -131,7 +131,7 @@ jobs:
       run: |
         echo "release_tag=immortalwrt-mt798x${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.2.1, luci-app-mtk, ax6000 mt_wifi config, mt7896-fw-ax7800(5 bins), mt7916-fw-ax7800(5 bins), revise mt7916 b0 and b1 6g 5g.dat acc. to ex5700 and mt7981, mt_wifi operation model default 6G, revise 742-net-dsa-add-MT7531-Gigabit-Ethernet-PHY-setting.patch to enable GBE 2nd led, revise dts and gpy211 to enable 2.5g wan lan led0/1, ifconfig raix0 down, writr MAC to rai0 raix0 dat, add netspeedtest(homebox), set gpy211 lan/wan led0/1 240/1008, add ra0/rax0/rai0/raix0 to br-lan bridge, write ra0/rai0 to dat, fix 7916-rai0/raix0 wifi tempinfo, revise mt_wifi config acc to ex5700 enable multi_profile/mbo, disable mlme_multi_queue/qos_r1, 7916 dat qos=0, ubootenv_add_uci_config "/dev/ubootenv", enable mt7986 sram" >> release.txt
+        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.8.1, mtwifi-cfg, fw-20221208, mtwifi-v7.6.6.1" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

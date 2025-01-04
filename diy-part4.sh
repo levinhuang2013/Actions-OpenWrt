@@ -35,9 +35,9 @@ git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-web
 #sed -i 's/mt7981-fw-20230306/mt7981-fw-20230411/g' package/mtk/drivers/mt_wifi/Makefile
 #sed -i 's/mt7981-fw-20230411/mt7981-fw-20230330/g' package/mtk/drivers/warp/Makefile
 
-# Disable 7916 rai0 2.4G and raix0 6G
+# Disable 7916 rai0 2.4G and ray0 6G
 sed -i '$i\ifconfig rai0 down' package/base-files/files/etc/rc.local
-sed -i '$i\ifconfig raix0 down' package/base-files/files/etc/rc.local
+sed -i '$i\ifconfig ray0 down' package/base-files/files/etc/rc.local
 
 # Add OpenClash DEV/TUN core
 cd ./feeds/luci/applications/luci-app-openclash/root/etc/openclash/

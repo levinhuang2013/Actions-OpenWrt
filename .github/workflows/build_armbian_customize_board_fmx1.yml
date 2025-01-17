@@ -120,7 +120,7 @@ jobs:
           
       - name: Set current year and month  
         run: |  
-          echo "CURRENT_YEAR_MONTH=$(date +'%Y%m')" >> $GITHUB_ENV  
+          echo "CURRENT_YEAR_MONTH=$(date +'%Y.%m')" >> $GITHUB_ENV  
 
       - name: Prepare Release Metadata
         run: |  
@@ -144,15 +144,15 @@ jobs:
         uses: actions/upload-artifact@main
         if: steps.organize.outputs.status == 'success' && !cancelled()
         with:
-          name: Armbian_firmware${{ github.event.inputs.RELEASE }}${{ env.VERSION }}
+          name: Armbian_${{ env.VERSION }}_${{ github.event.inputs.BOARD }}_${{ github.event.inputs.RELEASE }}_${{ github.event.inputs.BRANCH }}_${{ env.CURRENT_YEAR_MONTH }}
           path: ${{ env.FIRMWARE }}
 
       - name: Upload image to Release  
         if: success() 
         uses: ncipollo/release-action@main
         with:  
-          tag: "Armbian_${{ github.event.inputs.Version }}_${{ github.event.inputs.RELEASE }}_${{ env.CURRENT_YEAR_MONTH }}"  
-          name: "Armbian_${{ github.event.inputs.Version }}_${{ github.event.inputs.RELEASE }}_${{ env.CURRENT_YEAR_MONTH }}"  
+          tag: "Armbian_${{ env.VERSION }}_${{ github.event.inputs.BOARD }}_${{ github.event.inputs.RELEASE }}_${{ github.event.inputs.BRANCH }}_${{ env.CURRENT_YEAR_MONTH }}"  
+          name: "Armbian_${{ env.VERSION }}_${{ github.event.inputs.BOARD }}_${{ github.event.inputs.RELEASE }}_${{ github.event.inputs.BRANCH }}_${{ env.CURRENT_YEAR_MONTH }}"  
           artifacts: "${{ github.workspace }}/build/output/images/*"  
           allowUpdates: true 
           removeArtifacts: false 
@@ -160,9 +160,16 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}  
           body: |  
             ### Armbian Image Information  
-            - Release: ${{ github.event.inputs.RELEASE }}    
+            - Board: ${{ github.event.inputs.BOARD }}    
             - Version: ${{ env.VERSION }}  
+            - Release: ${{ github.event.inputs.RELEASE }}    
+            - Branch: ${{ github.event.inputs.BRANCH }}    
+            - Build Date: ${{ env.CURRENT_YEAR_MONTH }}    
             ### Armbian Image Verification  
             - sha256sum   
+            ### Armbian Desktop Environment  
+            - ${{ github.event.inputs.BUILD_DESKTOP }} 
+            ### Armbian Boot Logo  
+            - ${{ github.event.inputs.BOOT_LOGO }} 
           draft: false  
           prerelease: false  

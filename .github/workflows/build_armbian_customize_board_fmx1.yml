@@ -127,12 +127,9 @@ jobs:
           # latest_image=$(ls ${{ github.workspace }}/build/output/images/Armbian-unofficial_*.img.xz | grep -oE 'Armbian-unofficial_[0-9.]+_.*' | sort -V | tail -n 1) 
           latest_image=$(ls ${{ github.workspace }}/build/output/images/Armbian-unofficial_*.img.xz | sort -V | tail -n 1)
           version=$(echo "$latest_image" | cut -d'_' -f2)  
-          kernel.img.xz=$(echo "$latest_image" | cut -d'_' -f6)  
-          kernel=$(echo "$kernel.img.xz" | cut -d'.' -f$1.$2.$3)  
   
           # 将版本号设置为环境变量  
           echo "VERSION=$version" >> $GITHUB_ENV
-          echo "KERNEL=$kernel" >> $GITHUB_ENV
 
       - name: Organize files
         id: organize
@@ -165,7 +162,6 @@ jobs:
             - Version: ${{ env.VERSION }}  
             - Release: ${{ github.event.inputs.RELEASE }}    
             - Branch: ${{ github.event.inputs.BRANCH }}     
-            - Kernel: ${{ env.KERNEL }}  
             - Desktop: ${{ github.event.inputs.BUILD_DESKTOP }}    
             - Boot Logo: ${{ github.event.inputs.BOOT_LOGO }}   
             - Build Date: ${{ env.CURRENT_YEAR_MONTH }}   

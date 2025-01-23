@@ -1,8 +1,4 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
-/*
- * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
- *
- */
 
 /dts-v1/;
 #include <dt-bindings/input/linux-event-codes.h>
@@ -12,7 +8,7 @@
 #include "rk3399-opp.dtsi"
 
 / {
-	model = "Rockchip FMX1 PRO";
+	model = "RK3399 FMX1";
 	compatible = "rockchip,fmx1-pro", "rockchip,rk3399";
 
 	aliases {
@@ -595,6 +591,12 @@
 	vref-supply = <&vcc_1v8>;
 };
 
+&sdhci {
+	bus-width = <8>;
+	non-removable;
+	status = "okay";
+};
+
 &sdmmc {
 	bus-width = <4>;
 	cap-mmc-highspeed;
@@ -607,12 +609,6 @@
 	pinctrl-0 = <&sdmmc_clk &sdmmc_cd &sdmmc_cmd &sdmmc_bus4>;
 	vqmmc-supply = <&vcc_sdio>;
 	card-detect-delay = <800>;
-	status = "okay";
-};
-
-&sdhci {
-	bus-width = <8>;
-	non-removable;
 	status = "okay";
 };
 

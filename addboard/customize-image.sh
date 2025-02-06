@@ -17,6 +17,28 @@ LINUXFAMILY=$2
 BOARD=$3
 BUILD_DESKTOP=$4
 
+# Disable update kernel
+mkdir -p /etc/apt/preferences.d
+DISABLE_UPDATE_CONF=/etc/apt/preferences.d/disable-update
+PKG_LIST=$(dpkg-query --show --showformat='${Package}\n')
+
+function DISABLE_UPDATE() {
+    echo -e "Package: $1\nPin: version *\nPin-Priority: -1\n" >> ${DISABLE_UPDATE_CONF}
+}
+
+cat /dev/null > ${DISABLE_UPDATE_CONF}
+DISABLE_UPDATE armbian-firmware
+DISABLE_UPDATE $(echo "${PKG_LIST}" | grep "armbian-bsp-cli-")
+DISABLE_UPDATE $(echo "${PKG_LIST}" | grep "^linux-image-")
+DISABLE_UPDATE $(echo "${PKG_LIST}" | grep "^linux-dtb-")
+DISABLE_UPDATE $(echo "${PKG_LIST}" | grep "^linux-u-boot")
+
+# 替换Armbian-unofficial成Armbian OS
+#sed -i 's/Armbian-unofficial/Rockchip RK3399/g' /etc/armbian-image-release 
+# sed -i 's/24.8.1-trunk/24.8.1/g' /etc/armbian-image-release
+#sed -i 's/Armbian-unofficial/Rockchip RK3399/g' /etc/armbian-release
+# sed -i 's/24.8.1-trunk/24.8.1/g' /etc/armbian-release
+
 Main() {
 	case $RELEASE in
 		stretch)

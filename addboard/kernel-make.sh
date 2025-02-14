@@ -51,7 +51,7 @@ function run_kernel_make_internal() {
 		"${DISTCC_MAKE_J_PARALLEL[@]}" # Parallel compile, "-j X" for X cpus; determined by distcc, or is just "$CTHREADS" if distcc is not enabled.
 
 		"ARCH=${ARCHITECTURE}"                   # Key param. Everything depends on this.
-		"LOCALVERSION=-${BRANCH}-${LINUXFAMILY}" # Change the internal kernel version to include the family. Changing this causes recompiles # @TODO change hack at .config; that might handles mtime better
+		"LOCALVERSION=" # Change the internal kernel version to include the family. Changing this causes recompiles # @TODO change hack at .config; that might handles mtime better
 
 		"${cc_name}=${CCACHE} ${DISTCC_CROSS_COMPILE_PREFIX[@]} ${KERNEL_COMPILER}"                                         # added as prefix to every compiler invocation by make
 		"KCFLAGS=-fdiagnostics-color=always -Wno-error=misleading-indentation ${extra_warnings} ${KERNEL_EXTRA_CFLAGS:-""}" # Force GCC colored messages, downgrade misleading indentation to warning

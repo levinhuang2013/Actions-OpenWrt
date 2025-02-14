@@ -184,20 +184,20 @@ function artifact_kernel_prepare_version() {
 
 	# linux-image is always produced... unless we're in DTB-only mode
 	if [[ "${KERNEL_DTB_ONLY}" != "yes" ]]; then
-		artifact_map_packages=(["linux-image"]="linux-image-${BRANCH}-${LINUXFAMILY}")
+		artifact_map_packages=(["linux-image"]="linux-image-${LINUXFAMILY}")
 
 		# some/most kernels have also working headers...
 		if [[ "${KERNEL_HAS_WORKING_HEADERS:-"no"}" == "yes" ]]; then
-			artifact_map_packages+=(["linux-headers"]="linux-headers-${BRANCH}-${LINUXFAMILY}")
+			artifact_map_packages+=(["linux-headers"]="linux-headers-${LINUXFAMILY}")
 		fi
 	fi
 
 	# x86, specially, does not have working dtbs...
 	if [[ "${KERNEL_BUILD_DTBS:-"yes"}" == "yes" ]]; then
-		artifact_map_packages+=(["linux-dtb"]="linux-dtb-${BRANCH}-${LINUXFAMILY}")
+		artifact_map_packages+=(["linux-dtb"]="linux-dtb-${LINUXFAMILY}")
 	fi
 
-	artifact_map_packages+=(["linux-libc-dev"]="linux-libc-dev-${BRANCH}-${LINUXFAMILY}")
+	artifact_map_packages+=(["linux-libc-dev"]="linux-libc-dev-${LINUXFAMILY}")
 
 	artifact_name="kernel-${LINUXFAMILY}-${BRANCH}" # default name of regular artifact
 

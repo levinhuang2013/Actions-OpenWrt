@@ -42,6 +42,6 @@ mkdir ./core && cd ./core
 #tar -zxf ./dev.tar.gz
 #curl -sfL -o ./clash_tun.gz https://github.com/vernesong/OpenClash/raw/core/dev/premium/clash-linux-arm64-2023.08.17-13-gdcc8d87.gz
 #gzip -d clash_tun.gz
-curl -sfL -o ./meta.tar.gz https://github.com/vernesong/OpenClash/raw/core/dev/meta/clash-linux-arm64.tar.gz
+curl -sfL -o ./meta.tar.gz https://github.com/vernesong/OpenClash/raw/core/master/meta/clash-linux-arm64.tar.gz
 tar -zxf ./meta.tar.gz && mv -f clash clash_meta
 chmod +x ./clash* ; rm -rf ./*.gz

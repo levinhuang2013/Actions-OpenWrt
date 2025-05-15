@@ -21,7 +21,7 @@ env:
   REPO_BRANCH: emmc
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
-  DEVICE_NAME: bl-mt798x-sl3000-emmc-gpt
+  DEVICE_NAME: bl-mt798x-emmc-gpt
   TZ: Asia/Shanghai
 
 jobs:

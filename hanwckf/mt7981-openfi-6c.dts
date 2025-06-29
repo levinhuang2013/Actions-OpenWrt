@@ -1,8 +1,8 @@
 /dts-v1/;
 #include "mt7981.dtsi"
 / {
-	model = "OpenFi 6C1";
-	compatible = "openfi,6c1", "mediatek,mt7981";
+	model = "OpenFi 6C";
+	compatible = "openfi,6c", "mediatek,mt7981";
 	chosen {
 		bootargs = "console=ttyS0,115200n1 loglevel=8  \
 				earlycon=uart8250,mmio32,0x11002000";
@@ -47,6 +47,12 @@
 			label = "wifi";
 			gpios = <&pio 35 GPIO_ACTIVE_LOW>;
 			default-state = "on";
+		};
+
+		led_modem: led-04 {
+			label = "modem";
+			gpios = <&pio 11 GPIO_ACTIVE_LOW>;
+			default-state = "off";
 		};
 	};
 
@@ -274,26 +280,12 @@
 
 &pio {
 
-		pwm0_pin: pwm0-pin-g0 {
-				mux {
-						function = "pwm";
-						groups = "pwm0_0";
-				};
-		};
-
-		pwm1_pin: pwm1-pin-g0 {
-				mux {
-						function = "pwm";
-						groups = "pwm1_0";
-				};
-		};
-
-		pwm2_pin: pwm2-pin {
-				mux {
-						function = "pwm";
-						groups = "pwm2";
-				};
-		};
+        pwm_pins: pwm-pins {
+                mux {
+                        function = "pwm";
+                        groups = "pwm0_0", "pwm1_0";
+                };
+        };
 
 	spi0_flash_pins: spi0-pins {
 		mux {
@@ -345,6 +337,6 @@
 
 &pwm {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pwm1_pin>;
+	pinctrl-0 = <&pwm_pins>;
 	status = "okay";
 };

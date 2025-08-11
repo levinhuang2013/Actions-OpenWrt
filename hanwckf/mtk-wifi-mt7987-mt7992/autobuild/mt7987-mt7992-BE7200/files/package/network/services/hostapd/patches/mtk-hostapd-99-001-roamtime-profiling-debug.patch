@@ -1,0 +1,557 @@
+diff --git a/hostapd/ctrl_iface.c b/hostapd/ctrl_iface.c
+index fa6abc1..4e01806 100644
+--- a/hostapd/ctrl_iface.c
++++ b/hostapd/ctrl_iface.c
+@@ -1206,7 +1206,6 @@ static int hostapd_ctrl_iface_get_config(struct hostapd_data *hapd,
+ 	return pos - buf;
+ }
+ 
+-
+ static int hostapd_ctrl_iface_set_band(struct hostapd_data *hapd,
+ 				       const char *bands)
+ {
+@@ -3849,6 +3848,10 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
+ 	} else if (os_strncmp(buf, "WPS_MAP_SEC ", 12) == 0) {
+ 		hapd->iface->interfaces->map_sec_enable = atoi(buf + 12);
+ #endif /* CONFIG_MTK_MAP */
++#ifdef CONFIG_ROAM_CALIB
++	} else if (os_strncmp(buf, "ROAM_STA_CALIB ", 15) == 0) {
++		reply_len = hostapd_roam_calib (hapd, buf + 15,reply, reply_size);
++#endif /* CONFIG_ROAM_CALIB */
+ 	} else {
+ 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
+ 		reply_len = 16;
+diff --git a/hostapd/hostapd_cli.c b/hostapd/hostapd_cli.c
+index 1cf80f1..c314de0 100644
+--- a/hostapd/hostapd_cli.c
++++ b/hostapd/hostapd_cli.c
+@@ -1566,6 +1566,13 @@ static int hostapd_cli_cmd_driver(struct wpa_ctrl *ctrl, int argc, char *argv[])
+ }
+ #endif /* ANDROID */
+ 
++#ifdef CONFIG_ROAM_CALIB
++static int hostapd_cli_cmd_roam_sta_calib(struct wpa_ctrl *ctrl, int argc,
++					 char *argv[])
++{
++	return hostapd_cli_cmd(ctrl, "ROAM_STA_CALIB", 1, argc, argv);
++}
++#endif /* CONFIG_ROAM_CALIB */
+ 
+ struct hostapd_cli_cmd {
+ 	const char *cmd;
+@@ -1766,6 +1773,10 @@ static const struct hostapd_cli_cmd hostapd_cli_commands[] = {
+ 	{ "driver", hostapd_cli_cmd_driver, NULL,
+ 	  "<driver sub command> [<hex formatted data>] = send driver command data" },
+ #endif /* ANDROID */
++#ifdef CONFIG_ROAM_CALIB
++	{ "RoamStaCalib", hostapd_cli_cmd_roam_sta_calib, NULL,
++		"=Add[1-<mac>]/Delete[0-<mac>]/Display[2]/Enable[3 1]/Disable[3 0] RoamCalibSta" },
++#endif /* CONFIG_ROAM_CALIB */
+ 	{ NULL, NULL, NULL, NULL }
+ };
+ 
+diff --git a/src/ap/ap_config.h b/src/ap/ap_config.h
+index ceebc28..ce8e323 100644
+--- a/src/ap/ap_config.h
++++ b/src/ap/ap_config.h
+@@ -26,6 +26,27 @@ enum macaddr_acl {
+ 	USE_EXTERNAL_RADIUS_AUTH = 2
+ };
+ 
++#ifdef CONFIG_ROAM_CALIB
++#define ROAM_STA_CNT 3
++#define ROAM_DATA_CNT 100
++
++
++struct CAL_DATA {
++    char functionName[100];
++    char desc[200];
++	struct os_time timestamp;
++};
++
++struct _ROAM_STA {
++	u8	StaAddr[ETH_ALEN];
++	u8	Bssid[ETH_ALEN];
++	u8  data_cnt;
++	struct CAL_DATA data[ROAM_DATA_CNT];
++};
++#endif /* CONFIG_ROAM_CALIB */
++
++
++
+ /**
+  * mesh_conf - local MBSS state and settings
+  */
+@@ -961,6 +982,10 @@ struct hostapd_bss_config {
+ #ifdef CONFIG_IEEE80211AX
+ 	u8 dot11vmbssid;
+ #endif /* CONFIG_IEEE80211AX */
++#ifdef CONFIG_ROAM_CALIB
++	struct _ROAM_STA RoamCalibSta[ROAM_STA_CNT];
++	bool RoamCalibEnable;
++#endif /* CONFIG_ROAM_CALIB */
+ };
+ 
+ /**
+diff --git a/src/ap/drv_callbacks.c b/src/ap/drv_callbacks.c
+index 334f271..faa7bdb 100644
+--- a/src/ap/drv_callbacks.c
++++ b/src/ap/drv_callbacks.c
+@@ -182,6 +182,10 @@ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
+ 
+ 	random_add_randomness(addr, ETH_ALEN);
+ 
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd,(u8 *)addr, hapd->own_addr, "Assoc Event Recieved in Hostapd", __func__);
++#endif /* CONFIG_ROAM_CALIB */
+ 	hostapd_logger(hapd, addr, HOSTAPD_MODULE_IEEE80211,
+ 		       HOSTAPD_LEVEL_INFO, "associated");
+ 
+@@ -779,6 +783,10 @@ void hostapd_notif_disassoc(struct hostapd_data *hapd, const u8 *addr)
+ 		return;
+ 	}
+ 
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd,(u8 *)addr, NULL,"Disassoc Event Recieved in Hostapd",__func__);
++#endif /* CONFIG_ROAM_CALIB */
+ 	hostapd_logger(hapd, addr, HOSTAPD_MODULE_IEEE80211,
+ 		       HOSTAPD_LEVEL_INFO, "disassociated");
+ 
+diff --git a/src/ap/hostapd.c b/src/ap/hostapd.c
+index 6183727..4e8ebf3 100644
+--- a/src/ap/hostapd.c
++++ b/src/ap/hostapd.c
+@@ -1605,7 +1605,6 @@ static int hostapd_set_acl_list(struct hostapd_data *hapd,
+ 	return err;
+ }
+ 
+-
+ int hostapd_set_acl(struct hostapd_data *hapd)
+ {
+ 	struct hostapd_config *conf = hapd->iconf;
+@@ -4159,3 +4158,183 @@ void hostapd_ocv_check_csa_sa_query(void *eloop_ctx, void *timeout_ctx)
+ 	}
+ }
+ #endif /* CONFIG_OCV */
++
++#ifdef CONFIG_ROAM_CALIB
++int hostapd_roam_calib (struct hostapd_data *hapd,const char *textaddr, char *buf, size_t buflen)
++{
++#define REMOVE_MAC 0
++#define ADD_MAC 1
++#define DISPLAY 2
++#define ENABLE 3
++#define CLEAR 4
++
++	u8 macAddr[ETH_ALEN];
++	char *mac_value;
++	char *mac;
++	int i = 0;;
++	char *value;
++	int action;
++
++	char *arg = (char *)textaddr;
++
++	value = strtok(arg," ");
++	mac = strtok(NULL," ");
++	wpa_printf(MSG_ERROR ,"value=%s, mac = %s\n", value, mac);
++
++
++	action = (int) strtol(value, 0, 10);
++	switch (action) {
++		case DISPLAY:
++			hostapd_display_roam_sta(hapd);
++			return 0;
++		case ADD_MAC:
++			if (hwaddr_aton((const char *)mac, macAddr))
++				return -1;
++			hostapd_add_roam_sta(hapd,macAddr);
++			break;
++		case REMOVE_MAC:
++			if (hwaddr_aton((const char *)mac, macAddr))
++				return -1;
++			hostapd_remove_roam_sta(hapd, macAddr);
++			break;
++		case ENABLE:
++			if ((int) strtol(mac, 0, 10)==1)
++				hapd->conf->RoamCalibEnable = true;
++			else
++				hapd->conf->RoamCalibEnable = false;
++			break;
++		case CLEAR:
++			hostapd_clear_roam_data(hapd);
++			break;
++		default:
++			wpa_printf(MSG_ERROR ,"Invalid Input\n");
++			break;
++	}
++
++	wpa_printf(MSG_ERROR ,"Roam Calib Enable = %d\n", hapd->conf->RoamCalibEnable);
++	wpa_printf(MSG_ERROR ,"Current Roam Calib sta list::\n");
++
++	for (i = 0; i < ROAM_STA_CNT; i++) {
++		wpa_printf(MSG_ERROR ,"index %d: addr:%02x:%02x:%02x:%02x:%02x:%02x\n", i,
++			MAC2STR(hapd->conf->RoamCalibSta[i].StaAddr));
++	}
++	return 0;
++}
++
++void hostapd_add_roam_sta (struct hostapd_data *hapd, char *macAddr)
++{
++	int i;
++	for (i = 0; i < ROAM_STA_CNT; i++) {
++		if (os_memcmp(hapd->conf->RoamCalibSta[i].StaAddr, macAddr, ETH_ALEN) == 0) {
++			wpa_printf(MSG_ERROR ,"Roaming Sta already exist at index:%d\n", i);
++			return;
++		}
++	}
++	for (i = 0; i < ROAM_STA_CNT; i++) {
++		if (hapd->conf->RoamCalibSta[i].StaAddr[0] == 0 &&
++			hapd->conf->RoamCalibSta[i].StaAddr[1] == 0 &&
++			hapd->conf->RoamCalibSta[i].StaAddr[2] == 0 &&
++			hapd->conf->RoamCalibSta[i].StaAddr[3] == 0 &&
++			hapd->conf->RoamCalibSta[i].StaAddr[4] == 0 &&
++			hapd->conf->RoamCalibSta[i].StaAddr[5] == 0) {
++			os_memcpy (hapd->conf->RoamCalibSta[i].StaAddr, macAddr, ETH_ALEN);
++			break;
++		}
++	}
++	if (i >= ROAM_STA_CNT)
++		wpa_printf(MSG_ERROR ,"FAIL:::Roaming Sta list full, remove any existing station\n");
++	else
++		wpa_printf(MSG_ERROR ,"Roaming Sta added at: index:%d\n", i);
++}
++
++void hostapd_remove_roam_sta (struct hostapd_data *hapd, char *macAddr)
++{
++	int i;
++	for (i = 0; i < ROAM_STA_CNT; i++) {
++		if (os_memcmp(hapd->conf->RoamCalibSta[i].StaAddr, macAddr, ETH_ALEN) == 0) {
++			wpa_printf(MSG_ERROR ,"Removing Sta entry at index:%d\n", i);
++			os_memset(hapd->conf->RoamCalibSta[i].StaAddr, 0, ETH_ALEN);
++			os_memset(hapd->conf->RoamCalibSta[i].Bssid, 0, ETH_ALEN);
++			os_memset(hapd->conf->RoamCalibSta[i].data,0,sizeof(hapd->conf->RoamCalibSta[i].data));
++			hapd->conf->RoamCalibSta[i].data_cnt = 0;
++			break;
++		}
++	}
++
++	if (i >= ROAM_STA_CNT)
++		wpa_printf(MSG_ERROR ,"FAIL:::Sta MAC Address Not Found in List\n");
++	return;
++}
++
++void hostapd_display_roam_sta (struct hostapd_data *hapd)
++{
++	int i,j;
++	u64 timestamp;
++
++	wpa_printf(MSG_ERROR, "Start Roaming Cal Data\n");
++
++
++	for (i = 0; i < ROAM_STA_CNT; i++) {
++		wpa_printf(MSG_ERROR, "index %d\nMAC: "MACSTR"\nBSSID: "MACSTR"\n", i,
++			MAC2STR(hapd->conf->RoamCalibSta[i].StaAddr),MAC2STR(hapd->conf->RoamCalibSta[i].Bssid));
++
++		for (j=0;j<hapd->conf->RoamCalibSta[i].data_cnt;j++) {
++			timestamp = (u64)((hapd->conf->RoamCalibSta[i].data[j].timestamp.sec * 1000000) +
++				(hapd->conf->RoamCalibSta[i].data[j].timestamp.usec));
++
++			wpa_printf(MSG_ERROR, "[HAPD];%s;%s;%ld;", hapd->conf->RoamCalibSta[i].data[j].desc,
++				hapd->conf->RoamCalibSta[i].data[j].functionName, timestamp);
++		}
++	}
++	wpa_printf(MSG_ERROR, "Stop Roaming Cal Data\n");
++}
++
++void RoamCalibData(struct hostapd_data *hapd, u8 *macAddr, u8 *Bssid, char *desc, const char *func_name)
++{
++	int i = 0;
++
++	if (!hapd || !macAddr || !desc || !func_name) {
++		wpa_printf(MSG_ERROR,"invalid data for calibration\n");
++		return;
++	}
++
++	for (i = 0; i < ROAM_STA_CNT; i++) {
++		if (os_memcmp(hapd->conf->RoamCalibSta[i].StaAddr, macAddr, ETH_ALEN) == 0) {
++			wpa_printf(MSG_DEBUG,"Current data cnt = %d \n", hapd->conf->RoamCalibSta[i].data_cnt);
++			if (Bssid) {
++				os_memcpy(hapd->conf->RoamCalibSta[i].Bssid, Bssid, ETH_ALEN);
++				wpa_printf(MSG_DEBUG,"Roaming Copy Bssid Mac addr %02X:%02X:%02X:%02X:%02X:%02X  \n", MAC2STR(hapd->conf->RoamCalibSta[i].Bssid));
++			}
++			if (hapd->conf->RoamCalibSta[i].data_cnt < ROAM_DATA_CNT) {
++				os_memcpy(hapd->conf->RoamCalibSta[i].data[hapd->conf->RoamCalibSta[i].data_cnt].functionName,func_name,strlen(func_name));
++				wpa_printf(MSG_DEBUG,"RoamCalibData caller:%s  \n", hapd->conf->RoamCalibSta[i].data[hapd->conf->RoamCalibSta[i].data_cnt].functionName);
++				os_memcpy(hapd->conf->RoamCalibSta[i].data[hapd->conf->RoamCalibSta[i].data_cnt].desc,desc,strlen(desc));
++				os_get_time(&hapd->conf->RoamCalibSta[i].data[hapd->conf->RoamCalibSta[i].data_cnt].timestamp);
++				hapd->conf->RoamCalibSta[i].data_cnt++;
++				wpa_printf(MSG_DEBUG,"New data cnt = %d \n", hapd->conf->RoamCalibSta[i].data_cnt);
++			} else {
++				wpa_printf(MSG_DEBUG,"Max data cnt reached= %d \n", hapd->conf->RoamCalibSta[i].data_cnt);
++			}
++
++			return;
++		}
++	}
++	if (i >= ROAM_STA_CNT)
++		wpa_printf(MSG_ERROR,"FAIL:::Station Do not exists\n");
++	return;
++}
++
++void hostapd_clear_roam_data (struct hostapd_data *hapd)
++{
++	int i;
++	for (i = 0; i < ROAM_STA_CNT; i++) {
++		wpa_printf(MSG_ERROR ,"Removing Sta entry at index:%d\n", i);
++		os_memset(hapd->conf->RoamCalibSta[i].StaAddr, 0, ETH_ALEN);
++		os_memset(hapd->conf->RoamCalibSta[i].Bssid, 0, ETH_ALEN);
++		os_memset(hapd->conf->RoamCalibSta[i].data,0,sizeof(hapd->conf->RoamCalibSta[i].data));
++		hapd->conf->RoamCalibSta[i].data_cnt = 0;
++	}
++
++	return;
++}
++#endif /* CONFIG_ROAM_CALIB */
+diff --git a/src/ap/hostapd.h b/src/ap/hostapd.h
+index 03d559e..54cc344 100644
+--- a/src/ap/hostapd.h
++++ b/src/ap/hostapd.h
+@@ -796,4 +796,12 @@ int hostapd_set_acl(struct hostapd_data *hapd);
+ struct pmk_list * wpa_auth_mlo_get_pmk(struct hostapd_data *hapd, const u8 *addr);
+ #endif /* CONFIG_MTK_IEEE80211BE */
+ 
++#ifdef CONFIG_ROAM_CALIB
++int hostapd_roam_calib (struct hostapd_data *hapd,const char *textaddr, char *buf, size_t buflen);
++void hostapd_add_roam_sta(struct hostapd_data *hapd,char *addr);
++void hostapd_remove_roam_sta(struct hostapd_data *hapd,char *addr);
++void hostapd_display_roam_sta(struct hostapd_data *hapd);
++void RoamCalibData(struct hostapd_data *hapd, u8 *macAddr, u8 *Bssid, char *desc, const char *func_name);
++void hostapd_clear_roam_data(struct hostapd_data *hapd);
++#endif /* CONFIG_ROAM_CALIB */
+ #endif /* HOSTAPD_H */
+diff --git a/src/ap/ieee802_11.c b/src/ap/ieee802_11.c
+index e5e1c5c..f352475 100644
+--- a/src/ap/ieee802_11.c
++++ b/src/ap/ieee802_11.c
+@@ -706,6 +706,11 @@ static int auth_sae_send_commit(struct hostapd_data *hapd,
+ 		status = hapd->conf->sae_commit_status;
+ 	}
+ #endif /* CONFIG_TESTING_OPTIONS */
++
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd,(u8 *)sta->addr,(u8 *)bssid, "Auth - sae-send-commit", __func__);
++#endif /* CONFIG_ROAM_CALIB */
+ 	reply_res = send_auth_reply(hapd, sta, sta->addr, bssid,
+ 				    WLAN_AUTH_SAE, 1,
+ 				    status, wpabuf_head(data),
+@@ -728,6 +733,11 @@ static int auth_sae_send_confirm(struct hostapd_data *hapd,
+ 	if (data == NULL)
+ 		return WLAN_STATUS_UNSPECIFIED_FAILURE;
+ 
++#ifdef CONFIG_ROAM_CALIB	
++	if (hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd,(u8 *)sta->addr,(u8 *)bssid, "Auth - sae-send-confirm", __func__);
++#endif /* CONFIG_ROAM_CALIB */
++
+ 	reply_res = send_auth_reply(hapd, sta, sta->addr, bssid,
+ 				    WLAN_AUTH_SAE, 2,
+ 				    WLAN_STATUS_SUCCESS, wpabuf_head(data),
+@@ -3763,6 +3773,11 @@ static void handle_auth(struct hostapd_data *hapd,
+ 	    mgmt->u.auth.variable[1] == WLAN_AUTH_CHALLENGE_LEN)
+ 		challenge = &mgmt->u.auth.variable[2];
+ 
++#ifdef CONFIG_ROAM_CALIB
++	if(hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd,(u8 *)mgmt->sa,(u8 *)mgmt->bssid, "Auth handle", __func__);
++#endif /* CONFIG_ROAM_CALIB*/
++	
+ 	wpa_printf(MSG_DEBUG, "authentication: STA=" MACSTR " auth_alg=%d "
+ 		   "auth_transaction=%d status_code=%d wep=%d%s "
+ 		   "seq_ctrl=0x%x%s%s",
+@@ -5259,6 +5274,11 @@ static u16 send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
+ 		res = WLAN_STATUS_UNSPECIFIED_FAILURE;
+ 		goto done;
+ 	}
++
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd,(u8 *)sta->addr,NULL, "Send Assoc Response", __func__);
++#endif /* CONFIG_ROAM_CALIB */
+ 	reply = (struct ieee80211_mgmt *) buf;
+ 	reply->frame_control =
+ 		IEEE80211_FC(WLAN_FC_TYPE_MGMT,
+@@ -5688,6 +5708,15 @@ static void handle_assoc(struct hostapd_data *hapd,
+ 		return;
+ 	}
+ 
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd->conf->RoamCalibEnable) {
++		if (reassoc)
++			RoamCalibData(hapd,(u8 *)mgmt->sa,(u8 *)mgmt->bssid, "Re-Assoc Req In Hostapd", __func__);
++		else
++			RoamCalibData(hapd,(u8 *)mgmt->sa,(u8 *)mgmt->bssid, "Assoc Req In Hostapd", __func__);
++	}
++#endif /* CONFIG_ROAM_CALIB */
++
+ #ifdef CONFIG_TESTING_OPTIONS
+ 	if (reassoc) {
+ 		if (hapd->iconf->ignore_reassoc_probability > 0.0 &&
+diff --git a/src/ap/rrm.c b/src/ap/rrm.c
+index 79afaaa..a298a61 100644
+--- a/src/ap/rrm.c
++++ b/src/ap/rrm.c
+@@ -370,6 +370,11 @@ void hostapd_handle_radio_measurement(struct hostapd_data *hapd,
+ 	if (len < IEEE80211_HDRLEN + 3)
+ 		return;
+ 
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd, (u8 *)mgmt->sa, NULL , "Recieved Radio measurement frame", __func__);
++#endif /* CONFIG_ROAM_CALIB */
++
+ 	wpa_printf(MSG_DEBUG, "Radio measurement frame, action %u from " MACSTR,
+ 		   mgmt->u.action.u.rrm.action, MAC2STR(mgmt->sa));
+ 
+@@ -679,6 +684,11 @@ int hostapd_send_beacon_req(struct hostapd_data *hapd, const u8 *addr,
+ 	wpabuf_put_u8(buf, MEASURE_TYPE_BEACON); /* Measurement Type */
+ 	wpabuf_put_buf(buf, req);
+ 
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd, (u8 *)addr, NULL , "Send Beacon Request Frame", __func__);
++#endif /* CONFIG_ROAM_CALIB */
++
+ 	ret = hostapd_drv_send_action(hapd, hapd->iface->freq, 0, addr,
+ 				      wpabuf_head(buf), wpabuf_len(buf));
+ 	wpabuf_free(buf);
+diff --git a/src/ap/wnm_ap.c b/src/ap/wnm_ap.c
+index e55140e..127d46e 100644
+--- a/src/ap/wnm_ap.c
++++ b/src/ap/wnm_ap.c
+@@ -542,6 +542,11 @@ static void ieee802_11_rx_bss_trans_mgmt_resp(struct hostapd_data *hapd,
+ 	status_code = *pos++;
+ 	bss_termination_delay = *pos++;
+ 
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd, (u8 *)addr, NULL , "Recieved BSS Transition Management Response", __func__);
++#endif /* CONFIG_ROAM_CALIB */
++
+ 	wpa_printf(MSG_DEBUG, "WNM: BSS Transition Management Response from "
+ 		   MACSTR " dialog_token=%u status_code=%u "
+ 		   "bss_termination_delay=%u", MAC2STR(addr), dialog_token,
+@@ -917,6 +922,10 @@ int wnm_send_bss_tm_req(struct hostapd_data *hapd, struct sta_info *sta,
+ 	struct ieee80211_mgmt *mgmt;
+ 	size_t url_len;
+ 
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd, sta->addr, NULL , "Send BSS Transition Management Request", __func__);
++#endif /* CONFIG_ROAM_CALIB */
+ 	wpa_printf(MSG_DEBUG, "WNM: Send BSS Transition Management Request to "
+ 		   MACSTR
+ 		   " req_mode=0x%x disassoc_timer=%d valid_int=0x%x dialog_token=%u",
+diff --git a/src/ap/wpa_auth.c b/src/ap/wpa_auth.c
+index 1307b21..c6cb395 100644
+--- a/src/ap/wpa_auth.c
++++ b/src/ap/wpa_auth.c
+@@ -1200,6 +1200,9 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
+ 	const u8 *key_data;
+ 	size_t keyhdrlen, mic_len;
+ 	u8 *mic;
++#ifdef CONFIG_ROAM_CALIB
++	struct hostapd_data *hapd = sm->wpa_auth->cb_ctx;
++#endif /* CONFIG_ROAM_CALIB */
+ 
+ 	if (!wpa_auth || !wpa_auth->conf.wpa || !sm)
+ 		return;
+@@ -1219,6 +1222,15 @@ void wpa_receive(struct wpa_authenticator *wpa_auth,
+ 	key_info = WPA_GET_BE16(key->key_info);
+ 	key_data = mic + mic_len + 2;
+ 	key_data_length = WPA_GET_BE16(mic + mic_len);
++
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd && hapd->conf->RoamCalibEnable) {
++		if (sm->wpa_ptk_state == WPA_PTK_PTKSTART)
++			RoamCalibData(hapd,(u8 *)sm->addr, NULL, "Recieved 2/4 EAPOL from STA",__func__);
++		else if (sm->wpa_ptk_state == WPA_PTK_PTKINITNEGOTIATING)
++			RoamCalibData(hapd,(u8 *)sm->addr, NULL, "Recieved 4/4 EAPOL from STA",__func__);
++	}
++#endif /* CONFIG_ROAM_CALIB */
+ 	wpa_printf(MSG_DEBUG, "WPA: Received EAPOL-Key from " MACSTR
+ 		   " key_info=0x%x type=%u mic_len=%zu key_data_length=%u",
+ 		   MAC2STR(sm->addr), key_info, key->type,
+@@ -1710,6 +1722,9 @@ void __wpa_send_eapol(struct wpa_authenticator *wpa_auth,
+ 
+ 	mic_len = wpa_mic_len(sm->wpa_key_mgmt, sm->pmk_len);
+ 	keyhdrlen = sizeof(*key) + mic_len + 2;
++#ifdef CONFIG_ROAM_CALIB
++	struct hostapd_data *hapd = sm->wpa_auth->cb_ctx;
++#endif /* CONFIG_ROAM_CALIB */
+ 
+ 	len = sizeof(struct ieee802_1x_hdr) + keyhdrlen;
+ 
+@@ -1726,6 +1741,15 @@ void __wpa_send_eapol(struct wpa_authenticator *wpa_auth,
+ 
+ 	pairwise = !!(key_info & WPA_KEY_INFO_KEY_TYPE);
+ 
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd && hapd->conf->RoamCalibEnable) {
++		if (sm->wpa_ptk_state == WPA_PTK_PTKSTART)
++			RoamCalibData(hapd,(u8 *)sm->addr, NULL, "Send 1/4 EAPOL to STA",__func__);
++		else if (sm->wpa_ptk_state == WPA_PTK_PTKINITNEGOTIATING)
++			RoamCalibData(hapd,(u8 *)sm->addr, NULL, "Send 3/4 EAPOL to STA",__func__);
++	}
++#endif /* CONFIG_ROAM_CALIB */
++
+ 	wpa_printf(MSG_DEBUG,
+ 		   "WPA: Send EAPOL(version=%d secure=%d mic=%d ack=%d install=%d pairwise=%d kde_len=%zu keyidx=%d encr=%d)",
+ 		   version,
+diff --git a/src/ap/wpa_auth_ft.c b/src/ap/wpa_auth_ft.c
+index a8dea61..81db5f5 100644
+--- a/src/ap/wpa_auth_ft.c
++++ b/src/ap/wpa_auth_ft.c
+@@ -3623,6 +3623,9 @@ static int wpa_ft_process_auth_req(struct wpa_state_machine *sm,
+ 	int use_sha384;
+ 	size_t pmk_r1_len, kdk_len;
+ 	const u8 *s1kh_id;
++#ifdef CONFIG_ROAM_CALIB
++	struct hostapd_data *hapd = sm->wpa_auth->cb_ctx;
++#endif /* CONFIG _ROAM_CALIB */
+ 
+ 	*resp_ies = NULL;
+ 	*resp_ies_len = 0;
+@@ -3630,6 +3633,11 @@ static int wpa_ft_process_auth_req(struct wpa_state_machine *sm,
+ 	sm->pmk_r1_name_valid = 0;
+ 	conf = &sm->wpa_auth->conf;
+ 
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd && hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd,(u8 *)sm->addr, NULL, "FT auth from STA",__func__);
++#endif /* CONFIG_ROAM_CALIB */
++
+ 	wpa_hexdump(MSG_DEBUG, "FT: Received authentication frame IEs",
+ 		    ies, ies_len);
+ 
+@@ -3802,8 +3810,17 @@ pmk_r1_derived:
+ 	sm->pairwise = pairwise;
+ 	sm->PTK_valid = true;
+ 	sm->tk_already_set = false;
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd && hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd,(u8 *)sm->addr, NULL, "FT Install PTK",__func__);
++#endif /* CONFIG_ROAM_CALIB */
+ 	wpa_ft_install_ptk(sm, 0);
+ 
++#ifdef CONFIG_ROAM_CALIB
++	if (hapd && hapd->conf->RoamCalibEnable)
++		RoamCalibData(hapd, sm->addr, NULL, "Install and Store PTK Completed", __func__);
++#endif /* CONFIG_ROAM_CALIB */
++
+ 	if (wpa_ft_set_vlan(sm->wpa_auth, sm->addr, &vlan) < 0) {
+ 		wpa_printf(MSG_DEBUG, "FT: Failed to configure VLAN");
+ 		return WLAN_STATUS_UNSPECIFIED_FAILURE;

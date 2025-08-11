@@ -1,0 +1,20 @@
+Index: hostapd-e5ccbfc6/src/ap/beacon.c
+===================================================================
+--- hostapd-e5ccbfc6.orig/src/ap/beacon.c
++++ hostapd-e5ccbfc6/src/ap/beacon.c
+@@ -2660,6 +2660,7 @@ int ieee802_11_set_beacon(struct hostapd
+ 	if (ret != 0)
+ 		return ret;
+ 
++#if 0
+ 	if (!iface->interfaces || iface->interfaces->count <= 1)
+ 		return 0;
+ 
+@@ -2698,6 +2699,7 @@ int ieee802_11_set_beacon(struct hostapd
+ 				__ieee802_11_set_beacon(other->bss[i]);
+ 		}
+ 	}
++#endif
+ 
+ 	return 0;
+ }

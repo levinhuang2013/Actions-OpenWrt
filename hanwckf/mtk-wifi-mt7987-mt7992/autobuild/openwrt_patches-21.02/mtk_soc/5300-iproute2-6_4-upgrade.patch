@@ -1,0 +1,569 @@
+--- a/package/network/utils/iproute2/Makefile
++++ b/package/network/utils/iproute2/Makefile
+@@ -8,17 +8,19 @@
+ include $(TOPDIR)/rules.mk
+ 
+ PKG_NAME:=iproute2
+-PKG_VERSION:=5.11.0
+-PKG_RELEASE:=3
++PKG_VERSION:=6.4.0
++PKG_RELEASE:=1
+ 
+ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
+ PKG_SOURCE_URL:=@KERNEL/linux/utils/net/iproute2
+-PKG_HASH:=c5e2ea108212b3445051b35953ec267f9f3469e1d5c67ac034ab559849505c54
++PKG_HASH:=4c51b8decbc7e4da159ffb066f590cfb93dbf9af7ff86b1647ce42b7c179a272
+ PKG_BUILD_PARALLEL:=1
+ PKG_BUILD_DEPENDS:=iptables
+ PKG_LICENSE:=GPL-2.0
+ PKG_CPE_ID:=cpe:/a:iproute2_project:iproute2
+ 
++PKG_BUILD_FLAGS:=gc-sections lto
++
+ include $(INCLUDE_DIR)/kernel.mk
+ include $(INCLUDE_DIR)/package.mk
+ include $(INCLUDE_DIR)/nls.mk
+@@ -57,7 +59,16 @@ $(call Package/iproute2/Default)
+   DEFAULT_VARIANT:=1
+   PROVIDES:=tc
+   ALTERNATIVES:=200:/sbin/tc:/usr/libexec/tc-tiny
+-  DEPENDS:=+kmod-sched-core +libxtables +tc-mod-iptables +(PACKAGE_devlink||PACKAGE_rdma):libmnl
++  DEPENDS:=+kmod-sched-core +(PACKAGE_devlink||PACKAGE_rdma):libmnl
++endef
++
++define Package/tc-bpf
++$(call Package/iproute2/Default)
++  TITLE:=Traffic control utility (bpf)
++  VARIANT:=tcbpf
++  PROVIDES:=tc
++  ALTERNATIVES:=300:/sbin/tc:/usr/libexec/tc-bpf
++  DEPENDS:=+kmod-sched-core +(PACKAGE_devlink||PACKAGE_rdma):libmnl +libbpf
+ endef
+ 
+ define Package/tc-full
+@@ -65,14 +76,15 @@ $(call Package/iproute2/Default)
+   TITLE:=Traffic control utility (full)
+   VARIANT:=tcfull
+   PROVIDES:=tc
+-  ALTERNATIVES:=300:/sbin/tc:/usr/libexec/tc-full
+-  DEPENDS:=+kmod-sched-core +libxtables +tc-mod-iptables +libbpf +(PACKAGE_devlink||PACKAGE_rdma):libmnl
++  ALTERNATIVES:=400:/sbin/tc:/usr/libexec/tc-full
++  DEPENDS:=+kmod-sched-core +(PACKAGE_devlink||PACKAGE_rdma):libmnl +libbpf +libxtables +tc-mod-iptables
+ endef
+ 
+ define Package/tc-mod-iptables
+ $(call Package/iproute2/Default)
+   TITLE:=Traffic control module - iptables action
+-  DEPENDS:=+libxtables
++  VARIANT:=tcfull
++  DEPENDS:=+libxtables +libbpf
+ endef
+ 
+ define Package/genl
+@@ -123,13 +135,29 @@ endif
+ 
+ ifeq ($(BUILD_VARIANT),tctiny)
+   LIBBPF_FORCE:=off
++endif
++
++ifeq ($(BUILD_VARIANT),tcbpf)
++  HAVE_ELF:=y
++  LIBBPF_FORCE:=on
+   SHARED_LIBS:=y
+ endif
+ 
+ ifeq ($(BUILD_VARIANT),tcfull)
++  #enable iptables/xtables requirement only if tciptables variant is selected
++  TC_CONFIG_XT:=y
++  TC_CONFIG_XT_OLD:=y
++  TC_CONFIG_XT_OLD_H:=y
++  TC_CONFIG_IPSET:=y
+   HAVE_ELF:=y
+   LIBBPF_FORCE:=on
+   SHARED_LIBS:=y
++else
++  #disable iptables requirement by default
++  TC_CONFIG_XT:=n
++  TC_CONFIG_XT_OLD:=n
++  TC_CONFIG_XT_OLD_H:=n
++  TC_CONFIG_IPSET:=n
+ endif
+ 
+ ifdef CONFIG_PACKAGE_devlink
+@@ -145,20 +173,25 @@ define Build/Configure
+ 		> $(PKG_BUILD_DIR)/include/SNAPSHOT.h
+ endef
+ 
+-TARGET_CFLAGS += -ffunction-sections -fdata-sections -flto
+-TARGET_LDFLAGS += -Wl,--gc-sections -Wl,--as-needed
++TARGET_LDFLAGS += -Wl,--as-needed
+ TARGET_CPPFLAGS += -I$(STAGING_DIR)/usr/include/libnl-tiny
+ 
+ MAKE_FLAGS += \
+-	KERNEL_INCLUDE="$(LINUX_DIR)/user_headers/include" \
++	KERNEL_INCLUDE="$(LINUX_DIR)/include/uapi" \
+ 	SHARED_LIBS=$(SHARED_LIBS) \
+ 	IP_CONFIG_TINY=$(IP_CONFIG_TINY) \
++	BUILD_VARIANT=$(BUILD_VARIANT) \
+ 	LIBBPF_FORCE=$(LIBBPF_FORCE) \
+ 	HAVE_ELF=$(HAVE_ELF) \
+ 	HAVE_MNL=$(HAVE_MNL) \
+ 	HAVE_CAP=$(HAVE_CAP) \
++	HAVE_TIRPC=n \
+ 	IPT_LIB_DIR=/usr/lib/iptables \
+ 	XT_LIB_DIR=/usr/lib/iptables \
++	TC_CONFIG_XT=$(TC_CONFIG_XT) \
++	TC_CONFIG_XT_OLD=$(TC_CONFIG_XT_OLD) \
++	TC_CONFIG_XT_OLD_H=$(TC_CONFIG_XT_OLD_H) \
++	TC_CONFIG_IPSET=$(TC_CONFIG_IPSET) \
+ 	FPIC="$(FPIC)" \
+ 	$(if $(findstring c,$(OPENWRT_VERBOSE)),V=1,V='')
+ 
+@@ -189,6 +222,11 @@ define Package/tc-tiny/install
+ 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tc/tc $(1)/usr/libexec/tc-tiny
+ endef
+ 
++define Package/tc-bpf/install
++	$(INSTALL_DIR) $(1)/usr/libexec
++	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tc/tc $(1)/usr/libexec/tc-bpf
++endef
++
+ define Package/tc-full/install
+ 	$(INSTALL_DIR) $(1)/usr/libexec
+ 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tc/tc $(1)/usr/libexec/tc-full
+@@ -231,9 +269,12 @@ endef
+ 
+ $(eval $(call BuildPackage,ip-tiny))
+ $(eval $(call BuildPackage,ip-full))
++# build tc-mod-iptables before its dependents, to avoid
++# spurious rebuilds when building multiple variants.
++$(eval $(call BuildPackage,tc-mod-iptables))
+ $(eval $(call BuildPackage,tc-tiny))
++$(eval $(call BuildPackage,tc-bpf))
+ $(eval $(call BuildPackage,tc-full))
+-$(eval $(call BuildPackage,tc-mod-iptables))
+ $(eval $(call BuildPackage,genl))
+ $(eval $(call BuildPackage,ip-bridge))
+ $(eval $(call BuildPackage,ss))
+--- a/package/network/utils/iproute2/patches/100-configure.patch
++++ b/package/network/utils/iproute2/patches/100-configure.patch
+@@ -1,6 +1,6 @@
+ --- a/configure
+ +++ b/configure
+-@@ -39,7 +39,8 @@ int main(int argc, char **argv) {
++@@ -36,7 +36,8 @@ int main(int argc, char **argv) {
+  }
+  EOF
+  
+--- a/package/network/utils/iproute2/patches/110-darwin_fixes.patch
++++ b/package/network/utils/iproute2/patches/110-darwin_fixes.patch
+@@ -1,6 +1,6 @@
+ --- a/netem/maketable.c
+ +++ b/netem/maketable.c
+-@@ -10,7 +10,9 @@
++@@ -11,7 +11,9 @@
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <math.h>
+@@ -12,7 +12,7 @@
+  #include <sys/stat.h>
+ --- a/netem/normal.c
+ +++ b/netem/normal.c
+-@@ -8,8 +8,12 @@
++@@ -9,8 +9,12 @@
+  #include <string.h>
+  #include <limits.h>
+  
+@@ -27,7 +27,7 @@
+  #define TABLEFACTOR NETEM_DIST_SCALE
+ --- a/netem/pareto.c
+ +++ b/netem/pareto.c
+-@@ -7,8 +7,12 @@
++@@ -8,8 +8,12 @@
+  #include <math.h>
+  #include <limits.h>
+  
+@@ -42,7 +42,7 @@
+  #define TABLESIZE	16384
+ --- a/netem/paretonormal.c
+ +++ b/netem/paretonormal.c
+-@@ -14,10 +14,13 @@
++@@ -15,10 +15,13 @@
+  #include <string.h>
+  #include <math.h>
+  #include <limits.h>
+--- a/package/network/utils/iproute2/patches/115-add-config-xtlibdir.patch
++++ b/package/network/utils/iproute2/patches/115-add-config-xtlibdir.patch
+@@ -1,6 +1,6 @@
+ --- a/tc/Makefile
+ +++ b/tc/Makefile
+-@@ -128,6 +128,9 @@ CFLAGS += -DCONFIG_GACT -DCONFIG_GACT_PR
++@@ -127,6 +127,9 @@ CFLAGS += -DCONFIG_GACT -DCONFIG_GACT_PR
+  ifneq ($(IPT_LIB_DIR),)
+  	CFLAGS += -DIPT_LIB_DIR=\"$(IPT_LIB_DIR)\"
+  endif
+--- a/package/network/utils/iproute2/patches/140-allow_pfifo_fast.patch
++++ b/package/network/utils/iproute2/patches/140-allow_pfifo_fast.patch
+@@ -1,6 +1,6 @@
+ --- a/tc/q_fifo.c
+ +++ b/tc/q_fifo.c
+-@@ -95,5 +95,6 @@ struct qdisc_util pfifo_head_drop_qdisc_
++@@ -90,5 +90,6 @@ struct qdisc_util pfifo_head_drop_qdisc_
+  
+  struct qdisc_util pfifo_fast_qdisc_util = {
+  	.id = "pfifo_fast",
+--- a/package/network/utils/iproute2/patches/140-keep_libmnl_optional.patch
++++ b/package/network/utils/iproute2/patches/140-keep_libmnl_optional.patch
+@@ -1,6 +1,6 @@
+ --- a/configure
+ +++ b/configure
+-@@ -367,7 +367,7 @@ check_selinux()
++@@ -411,7 +411,7 @@ check_tirpc()
+  
+  check_mnl()
+  {
+--- a/package/network/utils/iproute2/patches/145-keep_libelf_optional.patch
++++ b/package/network/utils/iproute2/patches/145-keep_libelf_optional.patch
+@@ -1,6 +1,6 @@
+ --- a/configure
+ +++ b/configure
+-@@ -235,7 +235,7 @@ EOF
++@@ -266,7 +266,7 @@ EOF
+  
+  check_elf()
+  {
+--- a/package/network/utils/iproute2/patches/150-keep_libcap_optional.patch
++++ b/package/network/utils/iproute2/patches/150-keep_libcap_optional.patch
+@@ -1,6 +1,6 @@
+ --- a/configure
+ +++ b/configure
+-@@ -425,7 +425,7 @@ EOF
++@@ -469,7 +469,7 @@ EOF
+  
+  check_cap()
+  {
+--- a/package/network/utils/iproute2/patches/170-ip_tiny.patch
++++ b/package/network/utils/iproute2/patches/170-ip_tiny.patch
+@@ -1,6 +1,6 @@
+ --- a/ip/Makefile
+ +++ b/ip/Makefile
+-@@ -17,6 +17,13 @@ RTMONOBJ=rtmon.o
++@@ -19,6 +19,13 @@ RTMONOBJ=rtmon.o
+  
+  include ../config.mk
+  
+@@ -12,9 +12,9 @@
+ +STATIC_SYM_SOURCES:=$(filter-out $(STATIC_SYM_FILTER),$(wildcard *.c))
+ +
+  ALLOBJ=$(IPOBJ) $(RTMONOBJ)
+- SCRIPTS=ifcfg rtpr routel routef
++ SCRIPTS=routel
+  TARGETS=ip rtmon
+-@@ -46,7 +53,7 @@ else
++@@ -48,7 +55,7 @@ else
+  
+  ip: static-syms.o
+  static-syms.o: static-syms.h
+@@ -25,24 +25,25 @@
+  		sed -n '/'$$s'[^ ]* =/{s:.* \([^ ]*'$$s'[^ ]*\) .*:extern char \1[] __attribute__((weak)); if (!strcmp(sym, "\1")) return \1;:;p}' $$files ; \
+ --- a/ip/ip.c
+ +++ b/ip/ip.c
+-@@ -64,10 +64,16 @@ static void usage(void)
++@@ -61,11 +61,17 @@ static void usage(void)
+  	fprintf(stderr,
+  		"Usage: ip [ OPTIONS ] OBJECT { COMMAND | help }\n"
+  		"       ip [ -force ] -batch filename\n"
+ +#ifndef IPROUTE2_TINY
+- 		"where  OBJECT := { link | address | addrlabel | route | rule | neigh | ntable |\n"
+- 		"                   tunnel | tuntap | maddress | mroute | mrule | monitor | xfrm |\n"
+- 		"                   netns | l2tp | fou | macsec | tcp_metrics | token | netconf | ila |\n"
+- 		"                   vrf | sr | nexthop | mptcp }\n"
++ 		"where  OBJECT := { address | addrlabel | amt | fou | help | ila | ioam | l2tp |\n"
++ 		"                   link | macsec | maddress | monitor | mptcp | mroute | mrule |\n"
++ 		"                   neighbor | neighbour | netconf | netns | nexthop | ntable |\n"
++ 		"                   ntbl | route | rule | sr | tap | tcpmetrics |\n"
++ 		"                   token | tunnel | tuntap | vrf | xfrm }\n"
+ +#else
+-+		"where  OBJECT := { link | address | route | rule | neigh | tunnel | maddress |\n"
+-+		"                   mroute | mrule | monitor | netns | macsec | token | ila |\n"
+-+		"                   vrf | sr }\n"
+++		"where  OBJECT := { address | link | maddress | monitor |\n"
+++		"                   neighbor | neighbour | netns | route |\n"
+++		"                   rule | token | tunnel }\n"
+ +#endif
+  		"       OPTIONS := { -V[ersion] | -s[tatistics] | -d[etails] | -r[esolve] |\n"
+  		"                    -h[uman-readable] | -iec | -j[son] | -p[retty] |\n"
+  		"                    -f[amily] { inet | inet6 | mpls | bridge | link } |\n"
+-@@ -90,36 +96,50 @@ static const struct cmd {
++@@ -88,37 +94,49 @@ static const struct cmd {
+  	int (*func)(int argc, char **argv);
+  } cmds[] = {
+  	{ "address",	do_ipaddr },
+@@ -62,9 +63,9 @@
+ +#ifndef IPROUTE2_TINY
+  	{ "l2tp",	do_ipl2tp },
+  	{ "fou",	do_ipfou },
+-+#endif
+  	{ "ila",	do_ipila },
+  	{ "macsec",	do_ipmacsec },
+++#endif
+  	{ "tunnel",	do_iptunnel },
+  	{ "tunl",	do_iptunnel },
+ +#ifndef IPROUTE2_TINY
+@@ -77,22 +78,21 @@
+  	{ "monitor",	do_ipmonitor },
+ +#ifndef IPROUTE2_TINY
+  	{ "xfrm",	do_xfrm },
+-+#endif
+  	{ "mroute",	do_multiroute },
+  	{ "mrule",	do_multirule },
+++#endif
+  	{ "netns",	do_netns },
+ +#ifndef IPROUTE2_TINY
+  	{ "netconf",	do_ipnetconf },
+-+#endif
+  	{ "vrf",	do_ipvrf},
+  	{ "sr",		do_seg6 },
+-+#ifndef IPROUTE2_TINY
+  	{ "nexthop",	do_ipnh },
+  	{ "mptcp",	do_mptcp },
++ 	{ "ioam",	do_ioam6 },
+ +#endif
+  	{ "help",	do_help },
++ 	{ "stats",	do_ipstats },
+  	{ 0 }
+- };
+ --- a/lib/Makefile
+ +++ b/lib/Makefile
+ @@ -3,6 +3,10 @@ include ../config.mk
+@@ -105,4 +105,4 @@
+ +
+  UTILOBJ = utils.o utils_math.o rt_names.o ll_map.o ll_types.o ll_proto.o ll_addr.o \
+  	inet_proto.o namespace.o json_writer.o json_print.o json_print_math.o \
+- 	names.o color.o bpf_legacy.o bpf_glue.o exec.o fs.o cg_map.o
++ 	names.o color.o bpf_legacy.o bpf_glue.o exec.o fs.o cg_map.o ppp_proto.o
+--- a/package/network/utils/iproute2/patches/175-reduce-dynamic-syms.patch
++++ b/package/network/utils/iproute2/patches/175-reduce-dynamic-syms.patch
+@@ -1,6 +1,6 @@
+ --- a/tc/Makefile
+ +++ b/tc/Makefile
+-@@ -114,7 +114,7 @@ LDLIBS += -L. -lm
++@@ -113,7 +113,7 @@ LDLIBS += -L. -lm
+  
+  ifeq ($(SHARED_LIBS),y)
+  LDLIBS += -ldl
+@@ -9,7 +9,7 @@
+  endif
+  
+  TCLIB := tc_core.o
+-@@ -144,7 +144,7 @@ MODDESTDIR := $(DESTDIR)$(LIBDIR)/tc
++@@ -143,7 +143,7 @@ MODDESTDIR := $(DESTDIR)$(LIBDIR)/tc
+  all: tc $(TCSO)
+  
+  tc: $(TCOBJ) $(LIBNETLINK) libtc.a
+@@ -18,7 +18,7 @@
+  
+  libtc.a: $(TCLIB)
+  	$(QUIET_AR)$(AR) rcs $@ $^
+-@@ -166,6 +166,7 @@ install: all
++@@ -165,6 +165,7 @@ install: all
+  clean:
+  	rm -f $(TCOBJ) $(TCLIB) libtc.a tc *.so emp_ematch.tab.h; \
+  	rm -f emp_ematch.tab.*
+@@ -26,7 +26,7 @@
+  
+  q_atm.so: q_atm.c
+  	$(QUIET_CC)$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -shared -fpic -o q_atm.so q_atm.c -latm
+-@@ -205,4 +206,16 @@ static-syms.h: $(wildcard *.c)
++@@ -204,4 +205,16 @@ static-syms.h: $(wildcard *.c)
+  		sed -n '/'$$s'[^ ]* =/{s:.* \([^ ]*'$$s'[^ ]*\) .*:extern char \1[] __attribute__((weak)); if (!strcmp(sym, "\1")) return \1;:;p}' $$files ; \
+  	done > $@
+  
+--- a/package/network/utils/iproute2/patches/180-drop_FAILED_POLICY.patch
++++ b/package/network/utils/iproute2/patches/180-drop_FAILED_POLICY.patch
+@@ -11,7 +11,7 @@ Subject: [PATCH] add support for droppin
+ 
+ --- a/ip/rtm_map.c
+ +++ b/ip/rtm_map.c
+-@@ -54,6 +54,8 @@ char *rtnl_rtntype_n2a(int id, char *buf
++@@ -49,6 +49,8 @@ char *rtnl_rtntype_n2a(int id, char *buf
+  		return "nat";
+  	case RTN_XRESOLVE:
+  		return "xresolve";
+@@ -20,7 +20,7 @@ Subject: [PATCH] add support for droppin
+  	default:
+  		snprintf(buf, len, "%d", id);
+  		return buf;
+-@@ -89,6 +91,8 @@ int rtnl_rtntype_a2n(int *id, char *arg)
++@@ -84,6 +86,8 @@ int rtnl_rtntype_a2n(int *id, char *arg)
+  		res = RTN_UNICAST;
+  	else if (strcmp(arg, "throw") == 0)
+  		res = RTN_THROW;
+@@ -31,7 +31,7 @@ Subject: [PATCH] add support for droppin
+  		if (!end || end == arg || *end || res > 255)
+ --- a/include/uapi/linux/rtnetlink.h
+ +++ b/include/uapi/linux/rtnetlink.h
+-@@ -249,6 +249,7 @@ enum {
++@@ -265,6 +265,7 @@ enum {
+  	RTN_THROW,		/* Not in this table		*/
+  	RTN_NAT,		/* Translate this address	*/
+  	RTN_XRESOLVE,		/* Use external resolver	*/
+--- a/package/network/utils/iproute2/patches/190-fix-nls-rpath-link.patch
++++ b/package/network/utils/iproute2/patches/190-fix-nls-rpath-link.patch
+@@ -1,6 +1,6 @@
+ --- a/configure
+ +++ b/configure
+-@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
++@@ -290,7 +290,7 @@ int main(int argc, char **argv) {
+  }
+  EOF
+  
+@@ -9,7 +9,7 @@
+      local ret=$?
+  
+      rm -f $TMPDIR/libbpf_test.c $TMPDIR/libbpf_test
+-@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
++@@ -308,7 +308,7 @@ int main(int argc, char **argv) {
+  }
+  EOF
+  
+--- a/package/network/utils/iproute2/patches/200-drop_libbsd_dependency.patch
++++ b/package/network/utils/iproute2/patches/200-drop_libbsd_dependency.patch
+@@ -1,6 +1,6 @@
+ --- a/configure
+ +++ b/configure
+-@@ -411,14 +411,8 @@ EOF
++@@ -455,14 +455,8 @@ EOF
+      if $CC -I$INCLUDE -o $TMPDIR/strtest $TMPDIR/strtest.c >/dev/null 2>&1; then
+  	echo "no"
+      else
+--- a/package/network/utils/iproute2/patches/300-selinux-configurable.patch
++++ b/package/network/utils/iproute2/patches/300-selinux-configurable.patch
+@@ -1,6 +1,6 @@
+ --- a/configure
+ +++ b/configure
+-@@ -354,7 +354,7 @@ check_libbpf()
++@@ -385,7 +385,7 @@ check_libbpf()
+  check_selinux()
+  # SELinux is a compile time option in the ss utility
+  {
+--- a/package/network/utils/iproute2/patches/120-no_arpd.patch
++++ /dev/null
+@@ -1,15 +0,0 @@
+---- a/misc/Makefile
+-+++ b/misc/Makefile
+-@@ -6,9 +6,9 @@ TARGETS=ss nstat ifstat rtacct lnstat
+- 
+- include ../config.mk
+- 
+--ifeq ($(HAVE_BERKELEY_DB),y)
+--	TARGETS += arpd
+--endif
+-+#ifeq ($(HAVE_BERKELEY_DB),y)
+-+#	TARGETS += arpd
+-+#endif
+- 
+- all: $(TARGETS)
+- 
+--- a/package/network/utils/iproute2/patches/130-no_netem.patch
++++ /dev/null
+@@ -1,11 +0,0 @@
+---- a/Makefile
+-+++ b/Makefile
+-@@ -55,7 +55,7 @@ WFLAGS += -Wmissing-declarations -Wold-s
+- CFLAGS := $(WFLAGS) $(CCOPTS) -I../include -I../include/uapi $(DEFINES) $(CFLAGS)
+- YACCFLAGS = -d -t -v
+- 
+--SUBDIRS=lib ip tc bridge misc netem genl tipc devlink rdma dcb man
+-+SUBDIRS=lib ip tc bridge misc genl tipc devlink rdma dcb man
+- 
+- LIBNETLINK=../lib/libutil.a ../lib/libnetlink.a
+- LDLIBS += $(LIBNETLINK)
+--- a/package/network/utils/iproute2/patches/185-libbpf-add-limits-h.patch
++++ /dev/null
+@@ -1,45 +0,0 @@
+-From c77310119f9a5f99221dd967c5eb0c7a26094b41 Mon Sep 17 00:00:00 2001
+-From: Tony Ambardar <Tony.Ambardar@gmail.com>
+-Date: Wed, 3 Mar 2021 10:29:24 -0800
+-Subject: [PATCH] lib/bpf: add missing limits.h includes
+-
+-Several functions in bpf_glue.c and bpf_libbpf.c rely on PATH_MAX, which is
+-normally included from <limits.h> in other iproute2 source files.
+-
+-It fixes errors seen using gcc 10.2.0, binutils 2.35.1 and musl 1.1.24:
+-
+-bpf_glue.c: In function 'get_libbpf_version':
+-bpf_glue.c:46:11: error: 'PATH_MAX' undeclared (first use in this function);
+-did you mean 'AF_MAX'?
+-   46 |  char buf[PATH_MAX], *s;
+-      |           ^~~~~~~~
+-      |           AF_MAX
+-
+-Reported-by: Rui Salvaterra <rsalvaterra@gmail.com>
+-Signed-off-by: Tony Ambardar <Tony.Ambardar@gmail.com>
+----
+- lib/bpf_glue.c   | 2 ++
+- lib/bpf_libbpf.c | 1 +
+- 2 files changed, 3 insertions(+)
+-
+---- a/lib/bpf_glue.c
+-+++ b/lib/bpf_glue.c
+-@@ -4,6 +4,8 @@
+-  * Authors:	Hangbin Liu <haliu@redhat.com>
+-  *
+-  */
+-+#include <limits.h>
+-+
+- #include "bpf_util.h"
+- #ifdef HAVE_LIBBPF
+- #include <bpf/bpf.h>
+---- a/lib/bpf_libbpf.c
+-+++ b/lib/bpf_libbpf.c
+-@@ -13,6 +13,7 @@
+- #include <stdint.h>
+- #include <errno.h>
+- #include <fcntl.h>
+-+#include <limits.h>
+- 
+- #include <libelf.h>
+- #include <gelf.h>
+--- /dev/null
++++ b/package/network/utils/iproute2/patches/120-no_arpd_ifstat_rtacct_lnstat.patch
+@@ -0,0 +1,20 @@
++--- a/misc/Makefile
+++++ b/misc/Makefile
++@@ -2,13 +2,13 @@
++ SSOBJ=ss.o ssfilter_check.o ssfilter.tab.o
++ LNSTATOBJ=lnstat.o lnstat_util.o
++ 
++-TARGETS=ss nstat ifstat rtacct lnstat
+++TARGETS=ss nstat
++ 
++ include ../config.mk
++ 
++-ifeq ($(HAVE_BERKELEY_DB),y)
++-	TARGETS += arpd
++-endif
+++#ifeq ($(HAVE_BERKELEY_DB),y)
+++#	TARGETS += arpd
+++#endif
++ 
++ all: $(TARGETS)
++ 
+--- /dev/null
++++ b/package/network/utils/iproute2/patches/130-no_netem_tipc_dcb_man_vdpa.patch
+@@ -0,0 +1,14 @@
++--- a/Makefile
+++++ b/Makefile
++@@ -65,9 +65,9 @@ WFLAGS += -Wmissing-declarations -Wold-s
++ CFLAGS := $(WFLAGS) $(CCOPTS) -I../include -I../include/uapi $(DEFINES) $(CFLAGS)
++ YACCFLAGS = -d -t -v
++ 
++-SUBDIRS=lib ip tc bridge misc netem genl man
+++SUBDIRS=lib ip tc bridge misc genl
++ ifeq ($(HAVE_MNL),y)
++-SUBDIRS += tipc devlink rdma dcb vdpa
+++SUBDIRS += devlink rdma
++ endif
++ 
++ LIBNETLINK=../lib/libutil.a ../lib/libnetlink.a

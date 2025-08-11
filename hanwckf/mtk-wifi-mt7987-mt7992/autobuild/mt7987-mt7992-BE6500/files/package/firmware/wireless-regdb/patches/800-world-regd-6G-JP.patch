@@ -1,0 +1,15 @@
+Added 6G channels information for Japan
+---
+--- a/db.txt
++++ b/db.txt
+@@ -904,7 +904,9 @@
+ 	(4910 - 4990 @ 40), (23)
+ 	(5170 - 5250 @ 80), (20), AUTO-BW
+ 	(5250 - 5330 @ 80), (20), DFS, AUTO-BW
+-	(5490 - 5710 @ 160), (23), DFS
++	# sync with v2024.07.04
++	(5490 - 5730 @ 160), (23), DFS
++	(5925 - 6425 @ 320), (200 mW), NO-OUTDOOR
+ 	# 60 GHz band channels 2-4 at 10mW,
+ 	# ref: http://www.arib.or.jp/english/html/overview/doc/1-STD-T74v1_1.pdf
+ 	(57000 - 66000 @ 2160), (10 mW)

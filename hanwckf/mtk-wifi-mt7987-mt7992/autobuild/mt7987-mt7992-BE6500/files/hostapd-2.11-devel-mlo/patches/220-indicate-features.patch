@@ -1,0 +1,143 @@
+From: Jo-Philipp Wich <jow@openwrt.org>
+Date: Mon, 12 Dec 2011 17:26:13 +0000
+Subject: [PATCH] hostapd: support optional argument for the -v switch of
+ hostapd and wpa_supplicant to query build features, e.g. hostapd -veap to
+ test whether 802.11i support is compiled in
+
+Index: hostapd-e5ccbfc6/hostapd/main.c
+===================================================================
+--- hostapd-e5ccbfc6.orig/hostapd/main.c
++++ hostapd-e5ccbfc6/hostapd/main.c
+@@ -31,7 +31,7 @@
+ #include "config_file.h"
+ #include "eap_register.h"
+ #include "ctrl_iface.h"
+-
++#include "build_features.h"
+ 
+ struct hapd_global {
+ 	void **drv_priv;
+@@ -814,7 +814,7 @@ int main(int argc, char *argv[])
+ 	wpa_supplicant_event = hostapd_wpa_event;
+ 	wpa_supplicant_event_global = hostapd_wpa_event_global;
+ 	for (;;) {
+-		c = getopt(argc, argv, "b:Bde:f:hi:KP:sSTtu:vg:G:q");
++		c = getopt(argc, argv, "b:Bde:f:hi:KP:sSTtu:g:G:qv::");
+ 		if (c < 0)
+ 			break;
+ 		switch (c) {
+@@ -851,6 +851,8 @@ int main(int argc, char *argv[])
+ 			break;
+ #endif /* CONFIG_DEBUG_LINUX_TRACING */
+ 		case 'v':
++			if (optarg)
++				exit(!has_feature(optarg));
+ 			show_version();
+ 			exit(1);
+ 		case 'g':
+Index: hostapd-e5ccbfc6/wpa_supplicant/main.c
+===================================================================
+--- hostapd-e5ccbfc6.orig/wpa_supplicant/main.c
++++ hostapd-e5ccbfc6/wpa_supplicant/main.c
+@@ -12,6 +12,7 @@
+ #endif /* __linux__ */
+ 
+ #include "common.h"
++#include "build_features.h"
+ #include "crypto/crypto.h"
+ #include "fst/fst.h"
+ #include "wpa_supplicant_i.h"
+@@ -202,7 +203,7 @@ int main(int argc, char *argv[])
+ 
+ 	for (;;) {
+ 		c = getopt(argc, argv,
+-			   "b:Bc:C:D:de:f:g:G:hi:I:KLMm:No:O:p:P:qsTtuvW");
++			   "b:Bc:C:D:de:f:g:G:hi:I:KLMm:No:O:p:P:qsTtuv::W");
+ 		if (c < 0)
+ 			break;
+ 		switch (c) {
+@@ -302,8 +303,12 @@ int main(int argc, char *argv[])
+ 			break;
+ #endif /* CONFIG_CTRL_IFACE_DBUS_NEW */
+ 		case 'v':
+-			printf("%s\n", wpa_supplicant_version);
+-			exitcode = 0;
++			if (optarg) {
++				exitcode = !has_feature(optarg);
++			} else {
++				printf("%s\n", wpa_supplicant_version);
++				exitcode = 0;
++			}
+ 			goto out;
+ 		case 'W':
+ 			params.wait_for_monitor++;
+Index: hostapd-e5ccbfc6/src/utils/build_features.h
+===================================================================
+--- /dev/null
++++ hostapd-e5ccbfc6/src/utils/build_features.h
+@@ -0,0 +1,65 @@
++#ifndef BUILD_FEATURES_H
++#define BUILD_FEATURES_H
++
++static inline int has_feature(const char *feat)
++{
++#if defined(IEEE8021X_EAPOL) || (defined(HOSTAPD) && !defined(CONFIG_NO_RADIUS))
++	if (!strcmp(feat, "eap"))
++		return 1;
++#endif
++#ifdef CONFIG_IEEE80211AC
++	if (!strcmp(feat, "11ac"))
++		return 1;
++#endif
++#ifdef CONFIG_IEEE80211AX
++	if (!strcmp(feat, "11ax"))
++		return 1;
++#endif
++#ifdef CONFIG_IEEE80211R
++	if (!strcmp(feat, "11r"))
++		return 1;
++#endif
++#ifdef CONFIG_ACS
++	if (!strcmp(feat, "acs"))
++		return 1;
++#endif
++#ifdef CONFIG_SAE
++	if (!strcmp(feat, "sae"))
++		return 1;
++#endif
++#ifdef CONFIG_OWE
++	if (!strcmp(feat, "owe"))
++		return 1;
++#endif
++#ifdef CONFIG_SUITEB192
++	if (!strcmp(feat, "suiteb192"))
++		return 1;
++#endif
++#ifdef CONFIG_WEP
++	if (!strcmp(feat, "wep"))
++		return 1;
++#endif
++#ifdef CONFIG_HS20
++	if (!strcmp(feat, "hs20"))
++		return 1;
++#endif
++#ifdef CONFIG_WPS
++	if (!strcmp(feat, "wps"))
++		return 1;
++#endif
++#ifdef CONFIG_FILS
++	if (!strcmp(feat, "fils"))
++		return 1;
++#endif
++#ifdef CONFIG_OCV
++	if (!strcmp(feat, "ocv"))
++		return 1;
++#endif
++#ifdef CONFIG_MESH
++	if (!strcmp(feat, "mesh"))
++		return 1;
++#endif
++	return 0;
++}
++
++#endif /* BUILD_FEATURES_H */

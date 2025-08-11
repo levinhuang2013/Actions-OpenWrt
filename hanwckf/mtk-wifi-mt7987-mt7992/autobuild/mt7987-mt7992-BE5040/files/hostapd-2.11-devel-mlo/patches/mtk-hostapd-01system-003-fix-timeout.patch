@@ -1,0 +1,13 @@
+Index: hostapd-e5ccbfc6/src/common/wpa_ctrl.c
+===================================================================
+--- hostapd-e5ccbfc6.orig/src/common/wpa_ctrl.c
++++ hostapd-e5ccbfc6/src/common/wpa_ctrl.c
+@@ -544,7 +544,7 @@ retry_send:
+ 	os_free(cmd_buf);
+ 
+ 	os_get_reltime(&ending_at);
+-	ending_at.sec += 10;
++	ending_at.sec += 60;
+ 
+ 	for (;;) {
+ 		struct os_reltime diff;

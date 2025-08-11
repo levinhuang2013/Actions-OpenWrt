@@ -1,0 +1,33 @@
+diff --git a/package/base-files/files/etc/banner.testmode b/package/base-files/files/etc/banner.testmode
+new file mode 100644
+index 0000000..203c33c
+--- /dev/null
++++ b/package/base-files/files/etc/banner.testmode
+@@ -0,0 +1,7 @@
++ _______               __     _______           __        
++|_     _|.-----.-----.|  |_  |   |   |.-----.--|  |.-----.
++  |   |  |  -__|__ --||   _| |       ||  _  |  _  ||  -__|
++  |___|  |_____|_____||____| |__|_|__||_____|_____||_____|
++
++         W I R E L E S S   R F   T E S T M O D E
++
+diff --git a/package/base-files/files/etc/profile b/package/base-files/files/etc/profile
+index 76b149b..a7e26bd 100644
+--- a/package/base-files/files/etc/profile
++++ b/package/base-files/files/etc/profile
+@@ -2,6 +2,7 @@
+ 
+ [ -f /etc/banner ] && cat /etc/banner
+ [ -n "$FAILSAFE" ] && cat /etc/banner.failsafe
++[ -e /tmp/.testmode ] && echo -e "\033[1;31m" &&  cat /etc/banner.testmode && echo -e "\033[0m"
+ 
+ grep -Fsq '/ overlay ro,' /proc/mounts && {
+ 	echo 'Your JFFS2-partition seems full and overlayfs is mounted read-only.'
+@@ -12,6 +13,7 @@ export PATH="%PATH%"
+ export HOME=$(grep -e "^${USER:-root}:" /etc/passwd | cut -d ":" -f 6)
+ export HOME=${HOME:-/root}
+ export PS1='\u@\h:\w\$ '
++[ -e /tmp/.testmode ] && export PS1='\[\033[1;35;40m\]\u@TestMode:\w\$ \[\033[1;37;40m\]'
+ export ENV=/etc/shinit
+ 
+ case "$TERM" in

@@ -1,0 +1,1175 @@
+Index: hostapd-2.11-devel-mlo/hostapd/Makefile
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/hostapd/Makefile
++++ hostapd-2.11-devel-mlo/hostapd/Makefile
+@@ -326,6 +326,11 @@ NEED_SHA384=y
+ NEED_SHA512=y
+ endif
+ 
++ifdef CONFIG_MTK
++CFLAGS += -DCONFIG_MTK_IEEE80211BE
++OBJS += ../src/drivers/driver_nl80211_mtk.o
++endif
++
+ ifdef CONFIG_AIRTIME_POLICY
+ CFLAGS += -DCONFIG_AIRTIME_POLICY
+ OBJS += ../src/ap/airtime_policy.o
+Index: hostapd-2.11-devel-mlo/src/ap/drv_callbacks.c
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/ap/drv_callbacks.c
++++ hostapd-2.11-devel-mlo/src/ap/drv_callbacks.c
+@@ -251,7 +251,8 @@ out:
+ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
+ 			const u8 *req_ies, size_t req_ies_len,
+ 			const u8 *resp_ies, size_t resp_ies_len,
+-			const u8 *link_addr, int reassoc)
++			const u8 *link_addr, int reassoc,
++			const u8 *mld_addr)
+ {
+ 	struct sta_info *sta;
+ 	int new_assoc;
+@@ -269,6 +270,15 @@ int hostapd_notif_assoc(struct hostapd_d
+ #endif /* CONFIG_OWE */
+ 	bool updated = false;
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++	wpa_printf(MSG_DEBUG, "%s:%d: hapd:%s(%p)", __func__, __LINE__, hapd->conf->iface, hapd);
++	if (addr)
++		wpa_printf(MSG_DEBUG, "addr:" MACSTR, MAC2STR(addr));
++	if (link_addr)
++		wpa_printf(MSG_DEBUG, "link_addr:" MACSTR, MAC2STR(link_addr));
++	if (mld_addr)
++		wpa_printf(MSG_DEBUG, "mld_addr:" MACSTR, MAC2STR(mld_addr));
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 	if (addr == NULL) {
+ 		/*
+ 		 * This could potentially happen with unexpected event from the
+@@ -358,14 +368,22 @@ int hostapd_notif_assoc(struct hostapd_d
+ 	}
+ 
+ #ifdef CONFIG_IEEE80211BE
++#ifdef CONFIG_MTK_IEEE80211BE
++	if (mld_addr) {
++#else
+ 	if (link_addr) {
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 		struct mld_info *info = &sta->mld_info;
+ 		int i, num_valid_links = 0;
+ 		u8 link_id = hapd->mld_link_id;
+ 
+ 		ap_sta_set_mld(sta, true);
+ 		sta->mld_assoc_link_id = link_id;
++#ifdef CONFIG_MTK_IEEE80211BE
++		os_memcpy(info->common_info.mld_addr, mld_addr, ETH_ALEN);
++#else
+ 		os_memcpy(info->common_info.mld_addr, addr, ETH_ALEN);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 		info->links[link_id].valid = true;
+ 		os_memcpy(info->links[link_id].peer_addr, link_addr, ETH_ALEN);
+ 		os_memcpy(info->links[link_id].local_addr, hapd->own_addr,
+@@ -2342,6 +2360,106 @@ static void hostapd_eapol_tx_status(stru
+ 	ieee802_1x_eapol_tx_status(hapd, sta, data, len, ack);
+ }
+ 
++
++#ifdef CONFIG_MTK_IEEE80211BE
++static int hostapd_event_bss_ml_info(struct hostapd_data *hapd,
++				u8 mld_id,
++				u8 mld_link_id,
++				u8 *mld_addr)
++{
++	struct hostapd_bss_config *conf = hapd->conf;
++	struct hostapd_iface *iface = hapd->iface;
++	struct hapd_interfaces *interfaces = iface->interfaces;
++	struct hostapd_mld *mld = hapd->mld;
++	struct hostapd_data *partner;
++	bool mld_ap = (mld_id > 0 && mld_id < 17) ? true: false;
++	int i, j;
++
++	wpa_printf(MSG_DEBUG, "%s:%d: update phy:%s iface:%s with mld_id=%u, mld_link_id=%u mld_addr:%02x:%02x:%02x:%02x:%02x:%02x",
++		__func__, __LINE__, iface->phy, conf->iface,
++		mld_id, mld_link_id, mld_addr[0], mld_addr[1], mld_addr[2], mld_addr[3], mld_addr[4], mld_addr[5]);
++
++	if (mld) {
++		if (!mld_ap || mld->mld_id != mld_id || hapd->mld_link_id != mld_link_id)
++			goto change;
++	} else {
++		if (mld_ap)
++			goto change;
++	}
++
++	wpa_printf(MSG_DEBUG, "%s:%d: no change", __func__, __LINE__);
++
++	return 0;
++change:
++	if (mld)
++		hostapd_mld_remove_link(hapd);
++
++	if (!mld_ap) {
++		conf->mld_ap = false;
++		conf->mld_id = 0;
++		hapd->mld = NULL;
++	}
++
++	conf->mld_ap = true;
++	conf->mld_id = mld_id;
++	mld = hostapd_get_mld(interfaces, mld_id);
++	if (!mld) {
++		struct hostapd_mld *mld, **all_mld;
++
++		mld = os_zalloc(sizeof(struct hostapd_mld));
++		if (!mld) {
++			wpa_printf(MSG_ERROR, "%s:%d: mld alloc failed", __func__, __LINE__);
++			return -1;
++		}
++		mld->mld_id = mld_id;
++		os_memcpy(mld->mld_addr, mld_addr, sizeof(mld->mld_addr));
++		dl_list_init(&mld->links);
++		hapd->mld = mld;
++		hostapd_mld_ref_inc(mld);
++		hapd->mld_link_id = mld_link_id;
++		mld->next_link_id = mld_link_id++;
++		all_mld = os_realloc_array(interfaces->mld, interfaces->mld_count + 1,
++			sizeof(struct hostapd_mld *));
++		if (!all_mld) {
++			os_free(mld);
++			wpa_printf(MSG_ERROR, "%s:%d: all_mld alloc failed", __func__, __LINE__);
++			return -1;
++		}
++		interfaces->mld = all_mld;
++		interfaces->mld[interfaces->mld_count] = mld;
++		hostapd_mld_ref_inc(mld);
++		interfaces->mld_count++;
++		hostapd_mld_add_link(hapd);
++
++		wpa_printf(MSG_DEBUG, "%s:%d: hapd:%p new mld (%p) mld_id:%u", __func__, __LINE__, hapd, mld, mld_id);
++		return 0;
++	}
++
++	hapd->mld = mld;
++	for_each_mld_link(partner, hapd) {
++		if (partner == hapd)
++			continue;
++		if (partner->mld_link_id == mld_link_id) {
++			partner->mld_link_id = mld->next_link_id++;
++			break;
++		}
++	}
++	hapd->mld_link_id = mld_link_id;
++        dl_list_add_tail(&mld->links, &hapd->link);
++        mld->num_links++;
++	if (mld->next_link_id <= mld_link_id)
++		mld->next_link_id = mld_link_id+1;
++
++        if (!mld->fbss) {
++        	mld->fbss = hapd;
++	}
++	hostapd_mld_ref_inc(mld);
++	wpa_printf(MSG_DEBUG, "%s:%d: add link hapd:%p into mld:%p mld_id:%u mld_addr:" MACSTR, __func__, __LINE__, hapd, mld, mld_id, MAC2STR(mld->mld_addr));
++
++	return 0;
++}
++#endif /* CONFIG_MTK_IEEE80211BE */
++
+ void hostapd_wpa_event(void *ctx, enum wpa_event_type event,
+ 		       union wpa_event_data *data)
+ {
+@@ -2464,7 +2582,8 @@ void hostapd_wpa_event(void *ctx, enum w
+ 				    data->assoc_info.resp_ies,
+ 				    data->assoc_info.resp_ies_len,
+ 				    data->assoc_info.link_addr,
+-				    data->assoc_info.reassoc);
++				    data->assoc_info.reassoc,
++				    data->assoc_info.mld_addr);
+ 		break;
+ 	case EVENT_PORT_AUTHORIZED:
+ 		/* Port authorized event for an associated STA */
+@@ -2668,6 +2787,13 @@ void hostapd_wpa_event(void *ctx, enum w
+ 		hostapd_cleanup_cca_params(hapd);
+ 		break;
+ #endif /* CONFIG_IEEE80211AX */
++#ifdef CONFIG_MTK_IEEE80211BE
++	case EVENT_UPDATE_BSS_ML_INFO:
++		hostapd_event_bss_ml_info(hapd,
++			data->ml_info_event.mld_grp_idx,
++			data->ml_info_event.link_id, data->ml_info_event.addr);
++		break;
++#endif
+ 	default:
+ 		wpa_printf(MSG_DEBUG, "Unknown event %d", event);
+ 		break;
+Index: hostapd-2.11-devel-mlo/src/drivers/driver.h
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/drivers/driver.h
++++ hostapd-2.11-devel-mlo/src/drivers/driver.h
+@@ -5209,6 +5209,17 @@ struct wpa_driver_ops {
+ 			      const u8 *match, size_t match_len,
+ 			      bool multicast);
+ #endif /* CONFIG_TESTING_OPTIONS */
++
++#ifdef CONFIG_MTK_IEEE80211BE
++	/**
++	 * get_bss_mlo_info - Get MLO info for the specified interface
++	 * @priv: Private driver interface data
++	 * Returns: 0 on success, -1 on failure
++	 *
++	 * This optional callback can be used to get MLO info when setup bss.
++	 */
++	int (*get_bss_mlo_info)(void *priv);
++#endif
+ };
+ 
+ /**
+@@ -5836,6 +5847,12 @@ enum wpa_event_type {
+ 	 * EVENT_LINK_RECONFIG - Notification that AP links removed
+ 	 */
+ 	EVENT_LINK_RECONFIG,
++
++
++        /**
++         * EVENT_UPDATE_BSS_ML_INFO - Notification to update ML_INFO for BSS
++         */
++        EVENT_UPDATE_BSS_ML_INFO,
+ };
+ 
+ 
+@@ -6098,6 +6115,11 @@ union wpa_event_data {
+ 		 *	-1 if MLO is not used
+ 		 */
+ 		int assoc_link_id;
++
++		/**
++		 * mld_addr - mld address of the STA
++		 */
++		const u8 *mld_addr;
+ 	} assoc_info;
+ 
+ 	/**
+@@ -6819,6 +6841,13 @@ union wpa_event_data {
+ 		u8 valid_links;
+ 		struct t2lm_mapping t2lmap[MAX_NUM_MLD_LINKS];
+ 	} t2l_map_info;
++
++	struct ml_info_event {
++		u8 link_cnt; /* 0: add link, 1: remove link ,it is event id in driver*/
++		u8 mld_grp_idx;
++		u8 link_id;
++		u8 addr[ETH_ALEN];
++	} ml_info_event;
+ };
+ 
+ /**
+@@ -6855,7 +6884,8 @@ extern void (*wpa_supplicant_event_globa
+ static inline void drv_event_assoc(void *ctx, const u8 *addr, const u8 *req_ies,
+ 				   size_t req_ielen, const u8 *resp_ies,
+ 				   size_t resp_ielen, const u8 *link_addr,
+-				   int assoc_link_id, int reassoc)
++				   int assoc_link_id, int reassoc,
++				   const u8 *mld_addr)
+ {
+ 	union wpa_event_data event;
+ 	os_memset(&event, 0, sizeof(event));
+@@ -6867,6 +6897,7 @@ static inline void drv_event_assoc(void
+ 	event.assoc_info.addr = addr;
+ 	event.assoc_info.link_addr = link_addr;
+ 	event.assoc_info.assoc_link_id = assoc_link_id;
++	event.assoc_info.mld_addr = mld_addr;
+ 	wpa_supplicant_event(ctx, EVENT_ASSOC, &event);
+ }
+ 
+Index: hostapd-2.11-devel-mlo/src/drivers/driver_nl80211.c
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/drivers/driver_nl80211.c
++++ hostapd-2.11-devel-mlo/src/drivers/driver_nl80211.c
+@@ -39,6 +39,7 @@
+ #include "radiotap_iter.h"
+ #include "rfkill.h"
+ #include "driver_nl80211.h"
++#include "driver_nl80211_mtk.h"
+ 
+ 
+ #ifndef NETLINK_CAP_ACK
+@@ -2785,6 +2786,7 @@ static int nl80211_mgmt_subscribe_ap(str
+ 	wpa_printf(MSG_DEBUG, "nl80211: Subscribe to mgmt frames with AP "
+ 		   "handle %p", bss->nl_mgmt);
+ 
++#ifndef CONFIG_MTK_IEEE80211BE
+ 	for (i = 0; i < ARRAY_SIZE(stypes); i++) {
+ 		if (nl80211_register_frame(bss, bss->nl_mgmt,
+ 					   (WLAN_FC_TYPE_MGMT << 2) |
+@@ -2793,6 +2795,7 @@ static int nl80211_mgmt_subscribe_ap(str
+ 			goto out_err;
+ 		}
+ 	}
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 
+ 	if (nl80211_action_subscribe_ap(bss))
+ 		goto out_err;
+@@ -5090,6 +5093,7 @@ static int wpa_driver_nl80211_set_ap(voi
+ #endif /* CONFIG_MESH */
+ 
+ 	if (params->mld_ap) {
++#ifndef CONFIG_MTK_IEEE80211BE
+ 		if (!nl80211_link_valid(bss->valid_links,
+ 					params->mld_link_id)) {
+ 			wpa_printf(MSG_DEBUG,
+@@ -5099,6 +5103,7 @@ static int wpa_driver_nl80211_set_ap(voi
+ 		}
+ 
+ 		link = nl80211_get_link(bss, params->mld_link_id);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 	} else if (bss->valid_links) {
+ 		wpa_printf(MSG_DEBUG, "nl80211: MLD configuration expected");
+ 		return -EINVAL;
+@@ -5137,6 +5142,7 @@ static int wpa_driver_nl80211_set_ap(voi
+ 	    nla_put(msg, NL80211_ATTR_SSID, params->ssid_len, params->ssid))
+ 		goto fail;
+ 
++#ifndef CONFIG_MTK_IEEE80211BE
+ 	if (params->mld_ap) {
+ 		wpa_printf(MSG_DEBUG, "nl80211: link_id=%u",
+ 			   params->mld_link_id);
+@@ -5149,6 +5155,7 @@ static int wpa_driver_nl80211_set_ap(voi
+ 			nl80211_link_set_freq(bss, params->mld_link_id,
+ 					      params->freq->freq);
+ 	}
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 
+ 	if (params->proberesp && params->proberesp_len) {
+ 		wpa_hexdump(MSG_DEBUG, "nl80211: proberesp (offload)",
+@@ -6189,12 +6196,14 @@ static int nl80211_setup_ap(struct i802_
+ 	    !drv->device_ap_sme)
+ 		return -1;
+ 
++#ifndef CONFIG_MTK_IEEE80211BE
+ 	if (drv->device_ap_sme &&
+ 	    wpa_driver_nl80211_probe_req_report(bss, 1) < 0) {
+ 		wpa_printf(MSG_DEBUG, "nl80211: Failed to enable "
+ 			   "Probe Request frame reporting in AP mode");
+ 		/* Try to survive without this */
+ 	}
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 
+ 	return 0;
+ }
+@@ -7588,7 +7597,6 @@ static int wpa_driver_nl80211_get_capa(v
+ 	return 0;
+ }
+ 
+-
+ static int wpa_driver_nl80211_set_operstate(void *priv, int state)
+ {
+ 	struct i802_bss *bss = priv;
+@@ -8197,9 +8205,11 @@ static int i802_set_tx_queue_params(void
+ 
+ 	nla_nest_end(msg, txq);
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
+ 	if (link_id != NL80211_DRV_LINK_ID_NA &&
+ 	    nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id))
+ 		goto fail;
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 
+ 	res = send_and_recv_cmd(drv, msg);
+ 	wpa_printf(MSG_DEBUG,
+@@ -9076,6 +9086,10 @@ static int nl80211_send_frame_cmd(struct
+ 		   freq, wait, no_cck, no_ack, offchanok);
+ 	wpa_hexdump(MSG_MSGDUMP, "CMD_FRAME", buf, buf_len);
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++	link_id = NL80211_DRV_LINK_ID_NA;
++#endif /* CONFIG_MTK_IEEE80211BE */
++
+ 	if (!(msg = nl80211_cmd_msg(bss, 0, NL80211_CMD_FRAME)) ||
+ 	    ((link_id != NL80211_DRV_LINK_ID_NA) &&
+ 	     nla_put_u8(msg, NL80211_ATTR_MLO_LINK_ID, link_id)) ||
+@@ -10885,7 +10899,11 @@ static int driver_nl80211_send_action(vo
+ static int driver_nl80211_probe_req_report(void *priv, int report)
+ {
+ 	struct i802_bss *bss = priv;
++#ifdef CONFIG_MTK_IEEE80211BE
++	return 0;
++#else
+ 	return wpa_driver_nl80211_probe_req_report(bss, report);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ }
+ 
+ 
+@@ -14181,4 +14199,7 @@ const struct wpa_driver_ops wpa_driver_n
+ 	.register_frame = testing_nl80211_register_frame,
+ 	.radio_disable = testing_nl80211_radio_disable,
+ #endif /* CONFIG_TESTING_OPTIONS */
++#ifdef CONFIG_MTK_IEEE80211BE
++	.get_bss_mlo_info = mtk_ml80211_get_bss_ml_info,
++#endif
+ };
+Index: hostapd-2.11-devel-mlo/src/drivers/driver_nl80211_event.c
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/drivers/driver_nl80211_event.c
++++ hostapd-2.11-devel-mlo/src/drivers/driver_nl80211_event.c
+@@ -19,6 +19,10 @@
+ #include "common/ieee802_11_defs.h"
+ #include "common/ieee802_11_common.h"
+ #include "driver_nl80211.h"
++#define CONFIG_DRIVER_NL80211_MTK
++#ifdef CONFIG_DRIVER_NL80211_MTK
++#include "driver_nl80211_mtk.h"
++#endif
+ 
+ 
+ static void
+@@ -2185,7 +2189,68 @@ static void nl80211_new_station_event(st
+ 		int assoc_link_id = -1;
+ 		u8 *req_ies = NULL, *resp_ies = NULL;
+ 		size_t req_ies_len = 0, resp_ies_len = 0;
++#ifdef CONFIG_MTK_IEEE80211BE
++		struct ieee802_11_elems req_elems;
++		struct ieee802_11_elems resp_elems;
++		ParseRes req_res = ParseUnknown;
++		ParseRes resp_res = ParseUnknown;
+ 
++		if (tb[NL80211_ATTR_IE]) {
++			req_ies = nla_data(tb[NL80211_ATTR_IE]);
++			req_ies_len = nla_len(tb[NL80211_ATTR_IE]);
++			wpa_hexdump(MSG_DEBUG, "nl80211: Assoc Req IEs",
++				    req_ies, req_ies_len);
++			req_res = ieee802_11_parse_elems(req_ies, req_ies_len, &req_elems, 0);
++		}
++
++		if (tb[NL80211_ATTR_RESP_IE]) {
++			resp_ies = nla_data(tb[NL80211_ATTR_RESP_IE]);
++			resp_ies_len = nla_len(tb[NL80211_ATTR_RESP_IE]);
++			wpa_hexdump(MSG_DEBUG, "nl80211: Assoc Resp IEs",
++				    resp_ies, resp_ies_len);
++			resp_res = ieee802_11_parse_elems(resp_ies, resp_ies_len, &resp_elems, 0);
++		}
++
++#if 0
++		if (!bss->valid_links &&
++		    (tb[NL80211_ATTR_MLO_LINK_ID] ||
++		     (req_elems.basic_mle != NULL) || (req_elems.basic_mle_len > 0) ||
++		     tb[NL80211_ATTR_MLD_ADDR])) {
++			wpa_printf(MSG_ERROR,
++				   "nl80211: MLO info not expected for new station event for non-MLD AP");
++			return;
++		}
++#endif
++
++		if (tb[NL80211_ATTR_MLO_LINK_ID]) {
++			assoc_link_id =
++				nla_get_u8(tb[NL80211_ATTR_MLO_LINK_ID]);
++			wpa_printf(MSG_DEBUG, "nl80211: STA assoc link ID %d",
++				   assoc_link_id);
++			if (tb[NL80211_ATTR_MLD_ADDR]) {
++				peer_addr = nla_data(tb[NL80211_ATTR_MLD_ADDR]);
++				link_addr = nla_data(tb[NL80211_ATTR_MAC]);
++				wpa_printf(MSG_DEBUG,
++					   "nl80211: STA MLD address " MACSTR,
++					   MAC2STR(peer_addr));
++			}
++		} else if ((req_res == ParseOK) &&
++			 (req_elems.basic_mle != NULL) &&
++			 (req_elems.basic_mle_len > 0)) {
++
++			link_addr = nla_data(tb[NL80211_ATTR_MAC]);
++			peer_addr = get_basic_mle_mld_addr(req_elems.basic_mle,
++					req_elems.basic_mle_len);
++			if (!peer_addr) {
++				return;
++			}
++
++		}
++
++		drv_event_assoc(bss->ctx, link_addr, req_ies, req_ies_len,
++				resp_ies, resp_ies_len, link_addr,
++				assoc_link_id, 0, peer_addr);
++#else
+ 		if (!bss->valid_links &&
+ 		    (tb[NL80211_ATTR_MLO_LINK_ID] ||
+ 		     tb[NL80211_ATTR_MLD_ADDR])) {
+@@ -2225,6 +2290,7 @@ static void nl80211_new_station_event(st
+ 		drv_event_assoc(bss->ctx, peer_addr, req_ies, req_ies_len,
+ 				resp_ies, resp_ies_len, link_addr,
+ 				assoc_link_id, 0);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 		return;
+ 	}
+ 
+@@ -3291,6 +3357,9 @@ static void nl80211_vendor_event_brcm(st
+ 
+ 
+ static void nl80211_vendor_event(struct wpa_driver_nl80211_data *drv,
++#ifdef CONFIG_DRIVER_NL80211_MTK
++				 struct i802_bss *bss,
++#endif /* CONFIG_DRIVER_NL80211_MTK */
+ 				 struct nlattr **tb)
+ {
+ 	u32 vendor_id, subcmd, wiphy = 0;
+@@ -3345,6 +3414,11 @@ static void nl80211_vendor_event(struct
+ 		nl80211_vendor_event_brcm(drv, subcmd, data, len);
+ 		break;
+ #endif /* CONFIG_DRIVER_NL80211_BRCM */
++#ifdef CONFIG_DRIVER_NL80211_MTK
++	case OUI_MTK:
++		nl80211_vendor_event_mtk(drv, bss, subcmd, data, len);
++		break;
++#endif /* CONFIG_DRIVER_NL80211_MTK */
+ 	default:
+ 		wpa_printf(MSG_DEBUG, "nl80211: Ignore unsupported vendor event");
+ 		break;
+@@ -3791,7 +3865,7 @@ static void nl80211_obss_color_collision
+ 	data.bss_color_collision.bitmap =
+ 		nla_get_u64(tb[NL80211_ATTR_OBSS_COLOR_BITMAP]);
+ 
+-	wpa_printf(MSG_DEBUG, "nl80211: BSS color collision - bitmap %08llx",
++	wpa_printf(MSG_DEBUG, "nl80211: BSS color collision - bitmap %08"PRIx64,
+ 		   (long long unsigned int) data.bss_color_collision.bitmap);
+ 	wpa_supplicant_event(bss->ctx, EVENT_BSS_COLOR_COLLISION, &data);
+ }
+@@ -4044,7 +4118,11 @@ static void do_process_drv_event(struct
+ 		nl80211_stop_ap(drv, tb);
+ 		break;
+ 	case NL80211_CMD_VENDOR:
++#ifdef CONFIG_DRIVER_NL80211_MTK
++		nl80211_vendor_event(drv, bss, tb);
++#else
+ 		nl80211_vendor_event(drv, tb);
++#endif /* CONFIG_DRIVER_NL80211_MTK */
+ 		break;
+ 	case NL80211_CMD_NEW_PEER_CANDIDATE:
+ 		nl80211_new_peer_candidate(drv, tb);
+Index: hostapd-2.11-devel-mlo/src/drivers/driver_nl80211_mtk.c
+===================================================================
+--- /dev/null
++++ hostapd-2.11-devel-mlo/src/drivers/driver_nl80211_mtk.c
+@@ -0,0 +1,141 @@
++#include "includes.h"
++#include <sys/types.h>
++#include <sys/utsname.h>
++#include <fcntl.h>
++#include <net/if.h>
++#include <netlink/genl/genl.h>
++#include <netlink/genl/ctrl.h>
++#include <netlink/genl/family.h>
++#ifdef CONFIG_LIBNL3_ROUTE
++#include <netlink/route/neighbour.h>
++#endif /* CONFIG_LIBNL3_ROUTE */
++#include <linux/rtnetlink.h>
++#include <netpacket/packet.h>
++#include <linux/errqueue.h>
++
++#include "common.h"
++#include "driver_nl80211.h"
++#include "driver_nl80211_mtk.h"
++#include "mtk_vendor_nl80211.h"
++
++static void mtk_ml80211_bss_ml_info_event(struct wpa_driver_nl80211_data *drv,
++					struct i802_bss *bss,
++					u8 *data,
++					size_t len)
++{
++	union wpa_event_data *event = nla_data((struct nlattr *)data);
++
++	if (event)
++		wpa_supplicant_event(bss->ctx, EVENT_UPDATE_BSS_ML_INFO, event);
++}
++
++static int bss_mlo_info_handler(struct nl_msg *msg, void *arg)
++{
++	struct nlattr *tb[NL80211_ATTR_MAX + 1];
++	struct nlattr *sub_tb[MTK_NL80211_VENDOR_ATTR_BSS_MLO_INFO_ATTR_MAX + 1];
++	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
++	struct bss_mlo_info *param = arg;
++	int ret;
++
++	if (gnlh->cmd != NL80211_CMD_VENDOR)
++		return NL_SKIP;
++
++	ret = nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
++		  genlmsg_attrlen(gnlh, 0), NULL);
++	if (ret)
++		return NL_SKIP;
++
++	if (!tb[NL80211_ATTR_VENDOR_DATA])
++		return NL_SKIP;
++
++	ret = nla_parse_nested(sub_tb, MTK_NL80211_VENDOR_ATTR_BSS_MLO_INFO_ATTR_MAX,
++							tb[NL80211_ATTR_VENDOR_DATA], NULL);
++	if (ret)
++		return NL_SKIP;
++
++	if (sub_tb[MTK_NL80211_VENDOR_ATTR_BSS_MLO_INFO]) {
++		if ((size_t) nla_len(sub_tb[MTK_NL80211_VENDOR_ATTR_BSS_MLO_INFO])
++			!= sizeof(struct bss_mlo_info)) {
++			wpa_printf(MSG_INFO, "nl80211: insufficient buffer space");
++			return NL_SKIP;
++		}
++
++		os_memcpy(param, nla_data(sub_tb[MTK_NL80211_VENDOR_ATTR_BSS_MLO_INFO]),
++					nla_len(sub_tb[MTK_NL80211_VENDOR_ATTR_BSS_MLO_INFO]));
++	}
++
++	wpa_printf(MSG_INFO, "bss_mlo_info_handler, mld_grp_idx=%u, link_id=%u",
++				param->mld_grp_idx, param->link_id);
++
++	return NL_SKIP;
++}
++
++static int nl80211_get_bss_mlo_info(struct wpa_driver_nl80211_data *drv, struct i802_bss *bss)
++{
++	struct nl_msg *msg = NULL;
++	struct bss_mlo_info data = {0};
++	union wpa_event_data event = {0};
++	void *attr;
++	int ret;
++
++	wpa_printf(MSG_INFO, "nl80211_get_bss_mlo_info");
++
++	if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
++		nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, MTK_NL80211_VENDOR_ID) ||
++		nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD, MTK_NL80211_VENDOR_SUBCMD_GET_BSS_MLO_INFO)) {
++		nlmsg_free(msg);
++		return -1;
++	}
++
++	attr = nla_nest_start(msg, NL80211_ATTR_VENDOR_DATA);
++	if (!attr)
++		return -1;
++
++	if (nla_put_flag(msg, MTK_NL80211_VENDOR_ATTR_BSS_MLO_INFO))
++		return -1;
++
++	nla_nest_end(msg, attr);
++
++	ret = send_and_recv_resp(drv, msg, bss_mlo_info_handler, &data);
++	if (ret)
++		wpa_printf(MSG_DEBUG, "nl80211: get bss mlo info vendor command failed err=%d", ret);
++	else if (data.mld_grp_idx != 0 && !is_zero_ether_addr(data.addr)) {
++		event.ml_info_event.link_cnt = data.link_cnt;
++		event.ml_info_event.mld_grp_idx = data.mld_grp_idx;
++		event.ml_info_event.link_id = data.link_id;
++		memcpy(event.ml_info_event.addr, data.addr, ETH_ALEN);
++		wpa_supplicant_event(bss->ctx, EVENT_UPDATE_BSS_ML_INFO, (union wpa_event_data *)&event);
++	}
++
++	return ret;
++}
++
++int mtk_ml80211_get_bss_ml_info(void *priv)
++{
++	struct i802_bss *bss = priv;
++	struct wpa_driver_nl80211_data *drv = bss->drv;
++
++	wpa_printf(MSG_DEBUG, "nl80211: Sync %s mlo info", bss->ifname);
++
++	return nl80211_get_bss_mlo_info(drv, bss);
++}
++
++void nl80211_vendor_event_mtk(struct wpa_driver_nl80211_data *drv,
++				struct i802_bss *bss,
++				u32 subcmd,
++				u8 *data,
++				size_t len)
++{
++	switch (subcmd) {
++	case MTK_NL80211_VENDOR_EVENT_SEND_ML_INFO:
++		mtk_ml80211_bss_ml_info_event(drv, bss, data, len);
++		break;
++	case MTK_NL80211_VENDOR_EVENT_RSP_WAPP_EVENT:
++		break;
++	default:
++		wpa_printf(MSG_DEBUG,
++			   "nl80211: Ignore unsupported MTK vendor event %u",
++			   subcmd);
++		break;
++	}
++}
+Index: hostapd-2.11-devel-mlo/src/drivers/drivers.mk
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/drivers/drivers.mk
++++ hostapd-2.11-devel-mlo/src/drivers/drivers.mk
+@@ -44,6 +44,9 @@ endif
+ ifdef CONFIG_DRIVER_NL80211_BRCM
+ DRV_CFLAGS += -DCONFIG_DRIVER_NL80211_BRCM
+ endif
++ifdef CONFIG_MTK
++DRV_CFLAGS += -DCONFIG_DRIVER_NL80211_MTK
++endif
+ NEED_SME=y
+ NEED_AP_MLME=y
+ NEED_NETLINK=y
+Index: hostapd-2.11-devel-mlo/src/drivers/nl80211_copy.h
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/drivers/nl80211_copy.h
++++ hostapd-2.11-devel-mlo/src/drivers/nl80211_copy.h
+@@ -3423,7 +3423,7 @@ enum nl80211_attrs {
+  * NL80211_MAX_NR_AKM_SUITES is obsolete when %NL80211_ATTR_MAX_NUM_AKM_SUITES
+  * present in %NL80211_CMD_GET_WIPHY response.
+  */
+-#define NL80211_MAX_NR_AKM_SUITES		2
++#define NL80211_MAX_NR_AKM_SUITES		10
+ #define NL80211_EHT_MIN_CAPABILITY_LEN          13
+ #define NL80211_EHT_MAX_CAPABILITY_LEN          51
+ 
+Index: hostapd-2.11-devel-mlo/src/ap/hostapd.c
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/ap/hostapd.c
++++ hostapd-2.11-devel-mlo/src/ap/hostapd.c
+@@ -595,13 +595,16 @@ void hostapd_free_hapd_data(struct hosta
+ 	}
+ 
+ #ifdef CONFIG_IEEE80211BE
++#ifndef CONFIG_MTK_IEEE80211BE
+ 	/* If the interface was not added as well as it is not the first BSS,
+ 	 * at least the link should be removed here since deinit will take care
+ 	 * of only the first BSS. */
+ 	if (hapd->conf->mld_ap && !hapd->interface_added &&
+-	    hapd->iface->bss[0] != hapd)
++	    hapd->iface->bss[0] != hapd) {
+ 		hostapd_if_link_remove(hapd, WPA_IF_AP_BSS, hapd->conf->iface,
+ 				       hapd->mld_link_id);
++	}
++#endif /* CONFIG_MTK_IEEE80211BE */
+ #endif /* CONFIG_IEEE80211BE */
+ 
+ 	wpabuf_free(hapd->time_adv);
+@@ -2516,6 +2519,13 @@ static int hostapd_setup_interface_compl
+ 		goto fail;
+ 
+ 	wpa_printf(MSG_DEBUG, "Completing interface initialization");
++#ifdef CONFIG_MTK_IEEE80211BE
++	for (j = 0; j < iface->num_bss; j++) {
++		hapd = iface->bss[j];
++		hostapd_drv_get_bss_mlo_info(hapd);
++	}
++#endif
++
+ 	if (iface->freq) {
+ #ifdef NEED_AP_MLME
+ 		int res;
+@@ -2989,14 +2999,23 @@ void hostapd_interface_deinit(struct hos
+ 
+ #ifdef CONFIG_IEEE80211BE
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++void hostapd_mld_ref_inc(struct hostapd_mld *mld)
++#else
+ static void hostapd_mld_ref_inc(struct hostapd_mld *mld)
++#endif /* CONFIG_MTK_IEEE80211BE */
+ {
+ 	if (!mld)
+ 		return;
+ 
+ 	if (mld->refcount == HOSTAPD_MLD_MAX_REF_COUNT) {
++#ifdef CONFIG_MTK_IEEE80211BE
++		wpa_printf(MSG_ERROR, "AP MLD ID %u: Ref count overflow",
++			   mld->mld_id);
++#else
+ 		wpa_printf(MSG_ERROR, "AP MLD %s: Ref count overflow",
+ 			   mld->name);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 		return;
+ 	}
+ 
+@@ -3004,14 +3023,23 @@ static void hostapd_mld_ref_inc(struct h
+ }
+ 
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++void hostapd_mld_ref_dec(struct hostapd_mld *mld)
++#else
+ static void hostapd_mld_ref_dec(struct hostapd_mld *mld)
++#endif /* CONFIG_MTK_IEEE80211BE */
+ {
+ 	if (!mld)
+ 		return;
+ 
+ 	if (!mld->refcount) {
++#ifdef CONFIG_MTK_IEEE80211BE
++		wpa_printf(MSG_ERROR, "AP MLD ID %u: Ref count underflow",
++			   mld->mld_id);
++#else
+ 		wpa_printf(MSG_ERROR, "AP MLD %s: Ref count underflow",
+ 			   mld->name);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 		return;
+ 	}
+ 
+@@ -3058,8 +3086,13 @@ struct hostapd_iface * hostapd_alloc_ifa
+ static void hostapd_bss_alloc_link_id(struct hostapd_data *hapd)
+ {
+ 	hapd->mld_link_id = hapd->mld->next_link_id++;
++#ifdef CONFIG_MTK_IEEE80211BE
++	wpa_printf(MSG_DEBUG, "AP MLD ID: %u: Link ID %d assigned.",
++		   hapd->mld->mld_id, hapd->mld_link_id);
++#else
+ 	wpa_printf(MSG_DEBUG, "AP MLD: %s: Link ID %d assigned.",
+ 		   hapd->mld->name, hapd->mld_link_id);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ }
+ #endif /* CONFIG_IEEE80211BE */
+ 
+@@ -3081,8 +3114,13 @@ static void hostapd_bss_setup_multi_link
+ 	for (i = 0; i < interfaces->mld_count; i++) {
+ 		mld = interfaces->mld[i];
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++		if (!mld || mld->mld_id != conf->mld_id)
++			continue;
++#else
+ 		if (!mld || os_strcmp(conf->iface, mld->name) != 0)
+ 			continue;
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 
+ 		hapd->mld = mld;
+ 		hostapd_mld_ref_inc(mld);
+@@ -3097,10 +3135,18 @@ static void hostapd_bss_setup_multi_link
+ 	if (!mld)
+ 		goto fail;
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++	mld->mld_id = conf->mld_id;
++#else
+ 	os_strlcpy(mld->name, conf->iface, sizeof(conf->iface));
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 	dl_list_init(&mld->links);
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++	wpa_printf(MSG_DEBUG, "AP MLD ID:%u created", mld->mld_id);
++#else
+ 	wpa_printf(MSG_DEBUG, "AP MLD %s created", mld->name);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 
+ 	hapd->mld = mld;
+ 	hostapd_mld_ref_inc(mld);
+@@ -3120,7 +3166,11 @@ fail:
+ 	if (!mld)
+ 		return;
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++	wpa_printf(MSG_DEBUG, "AP MLD ID:%u free mld %p", mld->mld_id, mld);
++#else
+ 	wpa_printf(MSG_DEBUG, "AP MLD %s: free mld %p", mld->name, mld);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 	os_free(mld);
+ 	hapd->mld = NULL;
+ #endif /* CONFIG_IEEE80211BE */
+@@ -3161,8 +3211,13 @@ static void hostapd_cleanup_unused_mlds(
+ 		if (!remove && !forced_remove)
+ 			continue;
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++		wpa_printf(MSG_DEBUG, "AP MLD ID:%u Freed%s", mld->mld_id,
++			   forced_remove ? " (forced)" : "");
++#else
+ 		wpa_printf(MSG_DEBUG, "AP MLD %s: Freed%s", mld->name,
+ 			   forced_remove ? " (forced)" : "");
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 		os_free(mld);
+ 		interfaces->mld[i] = NULL;
+ 		num_mlds--;
+@@ -3428,6 +3483,9 @@ static void hostapd_cleanup_driver(const
+ 				   void *drv_priv, struct hostapd_iface *iface)
+ {
+ #ifdef CONFIG_IEEE80211BE
++#ifdef CONFIG_MTK_IEEE80211BE
++	driver->hapd_deinit(drv_priv);
++#else
+ 	if (!driver || !driver->hapd_deinit || !drv_priv)
+ 		return;
+ 
+@@ -3448,6 +3506,7 @@ static void hostapd_cleanup_driver(const
+ 		wpa_printf(MSG_WARNING, "Failed to remove BSS interface %s",
+ 			   iface->bss[0]->conf->iface);
+ 	}
++#endif /* CONFIG_MTK_IEEE80211BE */
+ #else /* CONFIG_IEEE80211BE */
+ 	driver->hapd_deinit(drv_priv);
+ #endif /* CONFIG_IEEE80211BE */
+@@ -4854,7 +4913,11 @@ bool hostapd_is_ml_partner(struct hostap
+ 	if (!hapd1->conf->mld_ap || !hapd2->conf->mld_ap)
+ 		return false;
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++	return hapd1->conf->mld_id == hapd2->conf->mld_id;
++#else
+ 	return !os_strcmp(hapd1->conf->iface, hapd2->conf->iface);
++#endif
+ }
+ 
+ 
+@@ -4884,15 +4947,25 @@ int hostapd_mld_add_link(struct hostapd_
+ 	dl_list_add_tail(&mld->links, &hapd->link);
+ 	mld->num_links++;
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++	wpa_printf(MSG_DEBUG, "AP MLD ID:%u Link ID %d added. num_links: %d",
++		   mld->mld_id, hapd->mld_link_id, mld->num_links);
++#else
+ 	wpa_printf(MSG_DEBUG, "AP MLD %s: Link ID %d added. num_links: %d",
+ 		   mld->name, hapd->mld_link_id, mld->num_links);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 
+ 	if (mld->fbss)
+ 		return 0;
+ 
+ 	mld->fbss = hapd;
++#ifdef CONFIG_MTK_IEEE80211BE
++	wpa_printf(MSG_DEBUG, "AP MLD ID:%u First link BSS set to %p",
++		   mld->mld_id, mld->fbss);
++#else
+ 	wpa_printf(MSG_DEBUG, "AP MLD %s: First link BSS set to %p",
+ 		   mld->name, mld->fbss);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 	return 0;
+ }
+ 
+@@ -4912,8 +4985,13 @@ int hostapd_mld_remove_link(struct hosta
+ 	dl_list_del(&hapd->link);
+ 	mld->num_links--;
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++	wpa_printf(MSG_DEBUG, "AP MLD ID:%u Link ID %d removed. num_links: %d",
++		   mld->mld_id, hapd->mld_link_id, mld->num_links);
++#else
+ 	wpa_printf(MSG_DEBUG, "AP MLD %s: Link ID %d removed. num_links: %d",
+ 		   mld->name, hapd->mld_link_id, mld->num_links);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 
+ 	if (mld->fbss != hapd)
+ 		return 0;
+@@ -4927,8 +5005,13 @@ int hostapd_mld_remove_link(struct hosta
+ 		mld->fbss = next_fbss;
+ 	}
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++	wpa_printf(MSG_DEBUG, "AP MLD ID:%u First link BSS set to %p",
++		   mld->mld_id, mld->fbss);
++#else
+ 	wpa_printf(MSG_DEBUG, "AP MLD %s: First link BSS set to %p",
+ 		   mld->name, mld->fbss);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 	return 0;
+ }
+ 
+@@ -4984,3 +5067,20 @@ u16 hostapd_get_punct_bitmap(struct host
+ 
+ 	return punct_bitmap;
+ }
++
++#ifdef CONFIG_MTK_IEEE80211BE
++struct hostapd_mld *hostapd_get_mld(struct hapd_interfaces *interfaces, u8 mld_id)
++{
++	int i;
++	struct hostapd_mld *mld;
++
++	for (i = 0; i < interfaces->mld_count; i++) {
++                mld = interfaces->mld[i];
++
++		if (mld->mld_id == mld_id)
++			return mld;
++	}
++
++	return NULL;
++}
++#endif /* CONFIG_MTK_IEEE80211BE */
+Index: hostapd-2.11-devel-mlo/src/ap/hostapd.h
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/ap/hostapd.h
++++ hostapd-2.11-devel-mlo/src/ap/hostapd.h
+@@ -518,7 +518,11 @@ struct hostapd_sta_info {
+  * struct hostapd_mld - hostapd per-mld data structure
+  */
+ struct hostapd_mld {
++#ifdef CONFIG_MTK_IEEE80211BE
++	u8 mld_id;
++#else
+ 	char name[IFNAMSIZ + 1];
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 	u8 mld_addr[ETH_ALEN];
+ 	u8 next_link_id;
+ 	u8 num_links;
+@@ -789,7 +793,7 @@ void hostapd_notify_assoc_fils_finish(st
+ 				      struct sta_info *sta);
+ int hostapd_notif_assoc(struct hostapd_data *hapd, const u8 *addr,
+ 			const u8 *req_ie, size_t req_ielen, const u8 *resp_ie,
+-			size_t resp_ielen, const u8 *link_addr, int reassoc);
++			size_t resp_ielen, const u8 *link_addr, int reassoc, const u8 *mld_addr);
+ void hostapd_notif_disassoc(struct hostapd_data *hapd, const u8 *addr);
+ void hostapd_event_sta_low_ack(struct hostapd_data *hapd, const u8 *addr);
+ void hostapd_event_connect_failed_reason(struct hostapd_data *hapd,
+@@ -855,4 +859,10 @@ static inline bool hostapd_mld_is_first_
+ 
+ u16 hostapd_get_punct_bitmap(struct hostapd_data *hapd);
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++struct hostapd_mld *hostapd_get_mld(struct hapd_interfaces *interfaces, u8 mld_id);
++void hostapd_mld_ref_inc(struct hostapd_mld *mld);
++void hostapd_mld_ref_dec(struct hostapd_mld *mld);
++#endif /* CONFIG_MTK_IEEE80211BE */
++
+ #endif /* HOSTAPD_H */
+Index: hostapd-2.11-devel-mlo/src/drivers/driver_nl80211_mtk.h
+===================================================================
+--- /dev/null
++++ hostapd-2.11-devel-mlo/src/drivers/driver_nl80211_mtk.h
+@@ -0,0 +1,15 @@
++#ifndef __DRIVER_NL80211_MTK_H__
++#define __DRIVER_NL80211_MTK_H__
++
++#include "common/mtk-vendor.h"
++
++int mtk_ml80211_get_bss_ml_info(void *priv);
++
++void nl80211_vendor_event_mtk(struct wpa_driver_nl80211_data *drv,
++				struct i802_bss *bss,
++				u32 subcmd,
++				u8 *data,
++				size_t len);
++
++
++#endif /* __DRIVER_NL80211_MTK_H__ */
+Index: hostapd-2.11-devel-mlo/src/ap/ap_drv_ops.h
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/ap/ap_drv_ops.h
++++ hostapd-2.11-devel-mlo/src/ap/ap_drv_ops.h
+@@ -483,6 +483,15 @@ static inline int hostapd_drv_link_sta_r
+ 					     addr);
+ }
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++static inline int hostapd_drv_get_bss_mlo_info(struct hostapd_data *hapd)
++{
++	if (!hapd->driver || !hapd->drv_priv || !hapd->driver->get_bss_mlo_info)
++		return -1;
++
++	return hapd->driver->get_bss_mlo_info(hapd->drv_priv);
++}
++#endif /* CONFIG_MTK_IEEE80211BE */
+ #endif /* CONFIG_IEEE80211BE */
+ 
+ #endif /* AP_DRV_OPS */
+Index: hostapd-2.11-devel-mlo/src/utils/wpa_debug.c
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/utils/wpa_debug.c
++++ hostapd-2.11-devel-mlo/src/utils/wpa_debug.c
+@@ -231,6 +231,8 @@ void _wpa_printf(int level, const char *
+ 			vfprintf(out_file, fmt, ap);
+ 			fprintf(out_file, "\n");
+ 			va_end(ap);
++			fflush(out_file);
++			fsync(fileno(out_file));
+ 		}
+ #endif /* CONFIG_DEBUG_FILE */
+ 		if (!wpa_debug_syslog && !out_file) {
+Index: hostapd-2.11-devel-mlo/src/ap/ap_drv_ops.c
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/ap/ap_drv_ops.c
++++ hostapd-2.11-devel-mlo/src/ap/ap_drv_ops.c
+@@ -592,9 +592,12 @@ int hostapd_if_remove(struct hostapd_dat
+ 		return -1;
+ 
+ #ifdef CONFIG_IEEE80211BE
++#ifdef CONFIG_MTK_IEEE80211BE
++#else
+ 	if (hapd->conf->mld_ap)
+ 		return hostapd_if_link_remove(hapd, type, ifname,
+ 					      hapd->mld_link_id);
++#endif
+ #endif /* CONFIG_IEEE80211BE */
+ 
+ 	return hapd->driver->if_remove(hapd->drv_priv, type, ifname);
+@@ -829,8 +832,11 @@ int hostapd_drv_set_key(const char *ifna
+ 	params.link_id = -1;
+ 
+ #ifdef CONFIG_IEEE80211BE
++#ifdef CONFIG_MTK_IEEE80211BE
++#else
+ 	if (hapd->conf->mld_ap && !(key_flag & KEY_FLAG_PAIRWISE))
+ 		params.link_id = hapd->mld_link_id;
++#endif /* CONFIG_MTK_IEEE80211BE */
+ #endif /* CONFIG_IEEE80211BE */
+ 
+ 	return hapd->driver->set_key(hapd->drv_priv, &params);
+Index: hostapd-2.11-devel-mlo/src/common/ieee802_11_common.c
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/common/ieee802_11_common.c
++++ hostapd-2.11-devel-mlo/src/common/ieee802_11_common.c
+@@ -13,6 +13,7 @@
+ #include "wpa_common.h"
+ #include "drivers/driver.h"
+ #include "qca-vendor.h"
++#include "mtk-vendor.h"
+ #include "ieee802_11_defs.h"
+ #include "ieee802_11_common.h"
+ 
+@@ -187,6 +188,10 @@ static int ieee802_11_parse_vendor_speci
+ 		}
+ 		break;
+ 
++#ifdef CONFIG_MTK_IEEE80211BE
++	case OUI_MTK:
++		break;
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 	default:
+ 		wpa_printf(MSG_EXCESSIVE, "unknown vendor specific "
+ 			   "information element ignored (vendor OUI "
+Index: hostapd-2.11-devel-mlo/src/common/mtk-vendor.h
+===================================================================
+--- /dev/null
++++ hostapd-2.11-devel-mlo/src/common/mtk-vendor.h
+@@ -0,0 +1,6 @@
++#ifndef MTK_VENDOR_H
++#define MTK_VENDOR_H
++
++#define OUI_MTK 0x000CE7
++
++#endif /* MTK_VENDOR_H */
+Index: hostapd-2.11-devel-mlo/src/ap/wpa_auth.c
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/src/ap/wpa_auth.c
++++ hostapd-2.11-devel-mlo/src/ap/wpa_auth.c
+@@ -2783,8 +2783,8 @@ SM_STATE(WPA_PTK, PTKSTART)
+ #ifdef CONFIG_IEEE80211BE
+ 	if (sm->mld_assoc_link_id >= 0) {
+ 		wpa_printf(MSG_DEBUG,
+-			   "RSN: MLD: Add MAC Address KDE: kde_len=%zu",
+-			   kde_len);
++			   "RSN: MLD: Add MAC Address KDE: " MACSTR ": kde_len=%zu",
++			   MAC2STR(sm->own_mld_addr), kde_len);
+ 		wpa_add_kde(buf + kde_len, RSN_KEY_DATA_MAC_ADDR,
+ 			    sm->own_mld_addr, ETH_ALEN, NULL, 0);
+ 		kde_len += 2 + RSN_SELECTOR_LEN + ETH_ALEN;
+@@ -4421,7 +4421,7 @@ static u8 * wpa_auth_ml_kdes(struct wpa_
+ 	if (sm->mld_assoc_link_id < 0)
+ 		return pos;
+ 
+-	wpa_printf(MSG_DEBUG, "RSN: MLD: Adding MAC Address KDE");
++	wpa_printf(MSG_DEBUG, "RSN: MLD: Adding MAC Address KDE:" MACSTR, MAC2STR(sm->own_mld_addr));
+ 	pos = wpa_add_kde(pos, RSN_KEY_DATA_MAC_ADDR,
+ 			  sm->own_mld_addr, ETH_ALEN, NULL, 0);
+ 
+Index: hostapd-2.11-devel-mlo/wpa_supplicant/events.c
+===================================================================
+--- hostapd-2.11-devel-mlo.orig/wpa_supplicant/events.c
++++ hostapd-2.11-devel-mlo/wpa_supplicant/events.c
+@@ -4085,11 +4085,19 @@ static void wpa_supplicant_event_assoc(s
+ 	if (wpa_s->ap_iface) {
+ 		if (!data)
+ 			return;
++#ifdef CONFIG_MTK_IEEE80211BE
++		hostapd_notif_assoc(wpa_s->ap_iface->bss[0],
++				    data->assoc_info.addr,
++				    data->assoc_info.req_ies,
++				    data->assoc_info.req_ies_len, NULL, 0,
++				    NULL, data->assoc_info.reassoc, NULL);
++#else
+ 		hostapd_notif_assoc(wpa_s->ap_iface->bss[0],
+ 				    data->assoc_info.addr,
+ 				    data->assoc_info.req_ies,
+ 				    data->assoc_info.req_ies_len, NULL, 0,
+ 				    NULL, data->assoc_info.reassoc);
++#endif /* CONFIG_MTK_IEEE80211BE */
+ 		return;
+ 	}
+ #endif /* CONFIG_AP */

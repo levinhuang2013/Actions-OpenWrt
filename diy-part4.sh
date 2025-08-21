@@ -24,14 +24,14 @@ sed -i 's/192.168.1.1/192.168.8.1/g' package/base-files/files/bin/config_generat
 git clone https://github.com/rufengsuixing/luci-app-adguardhome package/luci-app-adguardhome
 git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-webdav
 #git clone https://github.com/sirpdboy/netspeedtest package/homebox
-git clone https://github.com/destan19/OpenAppFilter package/openappfilter
-rm -rf feeds/packages/net/open-app-filter
+#git clone https://github.com/destan19/OpenAppFilter package/openappfilter
+#rm -rf feeds/packages/net/open-app-filter
 #git clone https://github.com/linkease/nas-packages-luci package/nas-packages-luci
 #git clone https://github.com/linkease/nas-packages package/nas-packages
 
 # Modify default WiFi SSID
 #sed -i 's/ImmortalWrt-2.4G/ImmortalWrt/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
-#sed -i 's/ImmortalWrt-5G/ImmortalWrt-5G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+sed -i 's/ImmortalWrt-5G/AX7800-5G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 #sed -i 's/MT7981_AX3000_2.4G/ImmortalWrt/g' package/mtk/drivers/wifi-profile/files/mt7981/mt7981.dbdc.b0.dat
 #sed -i 's/MT7981_AX3000_5G/ImmortalWrt-5G/g' package/mtk/drivers/wifi-profile/files/mt7981/mt7981.dbdc.b1.dat
 

@@ -31,7 +31,7 @@ git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-web
 
 # Modify default WiFi SSID
 #sed -i 's/ImmortalWrt-2.4G/ImmortalWrt/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
-sed -i 's/ImmortalWrt-5G/AX7800-5G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+#sed -i 's/ImmortalWrt-5G/AX7800-5G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 #sed -i 's/MT7981_AX3000_2.4G/ImmortalWrt/g' package/mtk/drivers/wifi-profile/files/mt7981/mt7981.dbdc.b0.dat
 #sed -i 's/MT7981_AX3000_5G/ImmortalWrt-5G/g' package/mtk/drivers/wifi-profile/files/mt7981/mt7981.dbdc.b1.dat
 
@@ -40,8 +40,8 @@ sed -i 's/ImmortalWrt-5G/AX7800-5G/g' package/mtk/applications/mtwifi-cfg/files/
 #sed -i 's/mt7981-fw-20230411/mt7981-fw-20230330/g' package/mtk/drivers/warp/Makefile
 
 # Disable 7916 rai0 2.4G and ray0 6G
-sed -i '$i\ifconfig rai0 down' package/base-files/files/etc/rc.local
-sed -i '$i\ifconfig ray0 down' package/base-files/files/etc/rc.local
+#sed -i '$i\ifconfig rai0 down' package/base-files/files/etc/rc.local
+#sed -i '$i\ifconfig ray0 down' package/base-files/files/etc/rc.local
 
 # Add OpenClash DEV/TUN core
 cd ./feeds/luci/applications/luci-app-openclash/root/etc/openclash/

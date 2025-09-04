@@ -63,7 +63,7 @@
 		regulator-max-microvolt = <1800000>;
 	};
 
-	vcc5v0_host: vcc5v0-host-regulator {
+	vcc5v0_host: vcc5v0-host {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc5v0_host";
 		enable-active-high;
@@ -74,7 +74,7 @@
 		vin-supply = <&vcc5v0_sys>;
 	};
 
-	vcc5v0_typec: vcc5v0-typec-regulator {
+	vcc5v0_typec: vcc5v0-typec {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc5v0_typec";
 		enable-active-high;
@@ -96,7 +96,7 @@
 		vin-supply = <&vcc5v0_sys>;
 	};
 
-	vcc3v3_lan: vcc3v3-lan-regulator {
+	vcc3v3_lan: vcc3v3-lan {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc3v3_lan";
 		regulator-always-on;
@@ -104,14 +104,6 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		vin-supply = <&vcc3v3_sys>;
-	};
-
-	fan0: gpio-fan {
-		#cooling-cells = <2>;
-		compatible = "gpio-fan";
-		gpio-fan,speed-map = <0 0 3000 1>;
-		gpios = <&gpio4 RK_PD4 GPIO_ACTIVE_HIGH>;
-		status = "okay";
 	};
 
 	gpio-keys {
@@ -178,6 +170,14 @@
 		 * - PDN (power down when low)
 		 */
 		reset-gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_LOW>;
+	};
+
+	fan0: gpio-fan {
+		status = "okay";
+		#cooling-cells = <2>;
+		compatible = "gpio-fan";
+		gpio-fan,speed-map = <0 0 3000 1>;
+		gpios = <&gpio4 RK_PD4 GPIO_ACTIVE_HIGH>;
 	};
 
 	sound-dit {
@@ -256,8 +256,8 @@
 };
 
 &gpu {
-	mali-supply = <&vdd_gpu>;
 	status = "okay";
+	mali-supply = <&vdd_gpu>;
 };
 
 &vpu {
@@ -269,6 +269,7 @@
 };
 
 &gmac {
+	status = "okay";
 	assigned-clock-parents = <&clkin_gmac>;
 	assigned-clocks = <&cru SCLK_RMII_SRC>;
 	clock_in_out = "input";
@@ -281,14 +282,13 @@
 	snps,reset-delays-us = <0 10000 50000>;
 	tx_delay = <0x28>;
 	rx_delay = <0x11>;
-	status = "okay";
 };
 
 &i2c0 {
+	status = "okay";
 	clock-frequency = <400000>;
 	i2c-scl-rising-time-ns = <168>;
 	i2c-scl-falling-time-ns = <4>;
-	status = "okay";
 
 	rk808: pmic@1b {
 		compatible = "rockchip,rk808";
@@ -529,15 +529,15 @@
 };
 
 &i2c1 {
+	status = "okay";
 	i2c-scl-rising-time-ns = <300>;
 	i2c-scl-falling-time-ns = <15>;
-	status = "okay";
 };
 
 &i2c3 {
+	status = "okay";
 	i2c-scl-rising-time-ns = <450>;
 	i2c-scl-falling-time-ns = <15>;
-	status = "okay";
 };
 
 &i2c4 {
@@ -557,10 +557,10 @@
 
 		connector {
 			compatible = "usb-c-connector";
-			data-role = "dual";
 			label = "USB-C";
 			op-sink-microwatt = <1000000>;
 			power-role = "dual";
+			data-role = "dual";
 			sink-pdos =
 				<PDO_FIXED(5000, 2500, PDO_FIXED_USB_COMM)>;
 			source-pdos =
@@ -577,21 +577,25 @@
 				port@0 {
 					reg = <0>;
 					usb_con_hs: endpoint {
-						remote-endpoint = <&u2phy0_typec_hs>;
+						remote-endpoint =
+							<&u2phy0_typec_hs>;
 					};
 				};
 
 				port@1 {
 					reg = <1>;
+
 					usb_con_ss: endpoint {
-						remote-endpoint = <&tcphy0_typec_ss>;
+						remote-endpoint =
+							<&tcphy0_typec_ss>;
 					};
 				};
 
 				port@2 {
 					reg = <2>;
 					usb_con_sbu: endpoint {
-						remote-endpoint = <&tcphy0_typec_dp>;
+						remote-endpoint =
+							<&tcphy0_typec_dp>;
 					};
 				};
 			};
@@ -600,9 +604,9 @@
 };
 
 &uart0 {
+	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart0_xfer &uart0_cts &uart0_rts>;
-	status = "okay";
 
 	bluetooth {
 		compatible = "brcm,bcm43438-bt";
@@ -656,6 +660,7 @@
 };
 
 &sdhci {
+	status = "okay";
 	//max-frequency = <150000000>;
 	bus-width = <8>;
 	mmc-hs200-1_8v;
@@ -663,10 +668,10 @@
 	//mmc-hs400-enhanced-strobe;
 	//keep-power-in-suspend;
 	non-removable;
-	status = "okay";
 };
 
 &sdmmc {
+	status = "okay";
 	clock-frequency = <100000000>;
 	//max-frequency = <150000000>;
 	bus-width = <4>;
@@ -679,10 +684,10 @@
 	cd-gpios = <&gpio0 RK_PA7 GPIO_ACTIVE_LOW>;
 	//vmmc-supply = <&vcc3v0_sd>;
 	vqmmc-supply = <&vcc_sdio>;
-	status = "okay";
 };
 
 &sdio0 {
+	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
 
@@ -698,7 +703,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdio0_bus4 &sdio0_cmd &sdio0_clk>;
 	sd-uhs-sdr104;
-	status = "okay";
 
 	brcmf: wifi@1 {
 		compatible = "brcm,bcm4329-fmac";
@@ -727,8 +731,8 @@
 };
 
 &tcphy0 {
-	extcon = <&usbc0>;
 	status = "okay";
+	extcon = <&usbc0>;
 };
 
 &tcphy0_dp {
@@ -760,8 +764,8 @@
 	};
 
 	u2phy0_host: host-port {
-		phy-supply = <&vcc5v0_host>;
 		status = "okay";
+		phy-supply = <&vcc5v0_host>;
 	};
 
 	port {
@@ -779,8 +783,8 @@
 	};
 
 	u2phy1_host: host-port {
-		phy-supply = <&vcc5v0_host>;
 		status = "okay";
+		phy-supply = <&vcc5v0_host>;
 	};
 };
 
@@ -836,12 +840,12 @@
 };
 
 &hdmi {
+	status = "okay";
 	avdd-0v9-supply = <&vcca0v9_hdmi>;
 	avdd-1v8-supply = <&vcca1v8_hdmi>;
 	ddc-i2c-bus = <&i2c3>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&hdmi_cec>;
-	status = "okay";
 };
 
 &hdmi_in_vopb {

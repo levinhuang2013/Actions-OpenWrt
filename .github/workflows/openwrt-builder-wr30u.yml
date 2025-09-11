@@ -18,7 +18,7 @@ on:
 
 env:
   REPO_URL: https://github.com/levinhuang2013/immortalwrt-mt798x
-  REPO_BRANCH: 20240920
+  REPO_BRANCH: wr30u
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: hanwckf/wr30u-mtwifi-cfg-backup.config
   DIY_P1_SH: diy-part1.sh
@@ -131,7 +131,7 @@ jobs:
       run: |
         echo "release_tag=immortalwrt-mt798x${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.31.1, psw: password; openclash(dev), passwall(ss_rust, trojan_plus), adguardhome, aliyun-webdav, msd_lite, luci-mtwifi-cfg, luci-app-eqos-mtk, ssid: Xiaomi_203-5G, mt_wifi-new-fw-20230411, warp-new-fw-20230411" >> release.txt
+        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.31.1, psw: password; openclash(meta), passwall(ss_rust, trojan_plus), adguardhome, ssid: Xiaomi_203-5G, mt_wifi-7.6.6.1, mt_wifi-fw-20230613" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

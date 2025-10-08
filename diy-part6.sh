@@ -31,8 +31,8 @@ sed -i 's/192.168.6.1/192.168.0.1/g' package/base-files/files/bin/config_generat
 git clone https://github.com/nikkinikki-org/OpenWrt-nikki package/nikki
 
 # Modify default WiFi SSID
-#sed -i 's/ImmortalWrt-2.4G/COMFAST-2.4G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
-#sed -i 's/ImmortalWrt-5G/COMFAST-5G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+sed -i 's/ImmortalWrt-2.4G/COMFAST-2.4G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+sed -i 's/ImmortalWrt-5G/COMFAST-5G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 
 # Add OpenClash DEV/TUN core
 #cd ./feeds/luci/applications/luci-app-openclash/root/etc/openclash/

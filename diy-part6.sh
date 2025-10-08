@@ -28,6 +28,7 @@ sed -i 's/192.168.6.1/192.168.0.1/g' package/base-files/files/bin/config_generat
 #rm -rf feeds/packages/net/open-app-filter
 #git clone https://github.com/linkease/nas-packages-luci package/nas-packages-luci
 #git clone https://github.com/linkease/nas-packages package/nas-packages
+git clone https://github.com/nikkinikki-org/OpenWrt-nikki package/nikki
 
 # Modify default WiFi SSID
 #sed -i 's/ImmortalWrt-2.4G/COMFAST-2.4G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh

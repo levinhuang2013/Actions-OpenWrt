@@ -17,10 +17,10 @@ on:
   workflow_dispatch:
 
 env:
-  REPO_URL: https://github.com/levinhuang2013/immortalwrt-mt798x
-  REPO_BRANCH: bpir3
+  REPO_URL: https://github.com/Kasazaki4090/immortalwrt-mt798x
+  REPO_BRANCH: openwrt-21.02
   FEEDS_CONF: hanwckf/feeds.conf.default
-  CONFIG_FILE: hanwckf/bpir3-emmc.config
+  CONFIG_FILE: hanwckf/bpi-r3-kasazaki4090.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part6.sh
   UPLOAD_BIN_DIR: false
@@ -131,7 +131,7 @@ jobs:
       run: |
         echo "release_tag=immortalwrt-mt798x${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.0.1, emmc, kmod-nvme, kmod-sfp, diskman, MT7986_USB_PKGS, MT7986_WWAN_PKGS, ttyd" >> release.txt
+        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.0.1" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

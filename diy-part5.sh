@@ -11,7 +11,7 @@
 #
 
 # Modify default IP
-sed -i 's/192.168.1.1/192.168.211.1/g' package/base-files/files/bin/config_generate
+sed -i 's/192.168.6.1/192.168.0.1/g' package/base-files/files/bin/config_generate
 
 # Modify default theme
 #sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
@@ -21,19 +21,19 @@ sed -i 's/192.168.1.1/192.168.211.1/g' package/base-files/files/bin/config_gener
 
 # Add packages
 #git clone -b js https://github.com/gngpp/luci-theme-design package/luci-theme-design
-git clone https://github.com/rufengsuixing/luci-app-adguardhome package/luci-app-adguardhome
-git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-webdav
+#git clone https://github.com/rufengsuixing/luci-app-adguardhome package/luci-app-adguardhome
+#git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-webdav
 #git clone https://github.com/sirpdboy/netspeedtest package/homebox
 #git clone https://github.com/destan19/OpenAppFilter package/openappfilter
 #rm -rf feeds/packages/net/open-app-filter
 #git clone https://github.com/linkease/nas-packages-luci package/nas-packages-luci
 #git clone https://github.com/linkease/nas-packages package/nas-packages
+git clone https://github.com/nikkinikki-org/OpenWrt-nikki package/nikki
+git clone https://github.com/eamonxg/luci-theme-aurora package/aurora
 
 # Modify default WiFi SSID
-sed -i 's/ImmortalWrt-2.4G/SL-3000/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
-sed -i 's/ImmortalWrt-5G/SL-3000-5G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
-#sed -i 's/MT7981_AX3000_2.4G/ImmortalWrt/g' package/mtk/drivers/wifi-profile/files/mt7981/mt7981.dbdc.b0.dat
-#sed -i 's/MT7981_AX3000_5G/ImmortalWrt-5G/g' package/mtk/drivers/wifi-profile/files/mt7981/mt7981.dbdc.b1.dat
+sed -i 's/ImmortalWrt-2.4G/COMFAST-2.4G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+sed -i 's/ImmortalWrt-5G/COMFAST-5G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 
 # Add OpenClash DEV/TUN core
 cd ./feeds/luci/applications/luci-app-openclash/root/etc/openclash/

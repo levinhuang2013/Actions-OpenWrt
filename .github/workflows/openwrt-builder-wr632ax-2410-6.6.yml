@@ -22,7 +22,7 @@ env:
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: hanwckf/wr632ax-2410-6.6.config
   DIY_P1_SH: diy-part1.sh
-  DIY_P2_SH: diy-part6.sh
+  DIY_P2_SH: diy-part5.sh
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
@@ -143,7 +143,7 @@ jobs:
       run: |
         echo "release_tag=immortalwrt-mt798x-6.6${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "immortalwrt-mt798x-6.6${{ env.DEVICE_NAME }}, lan: 192.168.0.1, openclash, nikki, ssid: COMFAST, luci-app-fancontrol" >> release.txt
+        echo "immortalwrt-mt798x-6.6${{ env.DEVICE_NAME }}, lan: 192.168.0.1, openclash, nikki, usb-printer, luci-theme-aurora, ssid: COMFAST, luci-app-fancontrol" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

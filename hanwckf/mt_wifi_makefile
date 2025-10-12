@@ -8,8 +8,8 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=mt_wifi
 
-MT7981_FW_DIR := mt7981-fw-20230306
-MT7986_FW_DIR := mt7986-fw-20230808
+MT7981_FW_DIR := mt7981-fw-20240613
+MT7986_FW_DIR := mt7986-asus-ax6000
 
 ifeq ($(CONFIG_MTK_CHIP_MT7981),y)
 PKG_SUFFIX:=mt7981
@@ -20,7 +20,6 @@ endif
 endif
 
 PKG_BUILD_DEPENDS:=warp
-PKG_SOURCE:=mt798x-7.6.6.1-src.tar.xz
 PKG_VERSION:=7.6.6.1-$(PKG_SUFFIX)
 
 PKG_BUILD_PARALLEL:=1

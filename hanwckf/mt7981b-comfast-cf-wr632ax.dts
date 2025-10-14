@@ -2,7 +2,7 @@
 
 /dts-v1/;
 
-#include "mt7981.dtsi"
+#include "mt7981b.dtsi"
 
 / {
 	model = "COMFAST CF-WR632AX";
@@ -54,40 +54,6 @@
 	};
 };
 
-&cpu_thermal {
-	trips {
-		cpu_trip_active_highest: active-highest {
-			temperature = <100000>;
-			hysteresis = <2000>;
-			type = "active";
-		};
-
-		cpu_trip_active_high: active-high {
-			temperature = <90000>;
-			hysteresis = <2000>;
-			type = "active";
-		};
-
-		cpu_trip_active_med: active-med {
-			temperature = <80000>;
-			hysteresis = <2000>;
-			type = "active";
-		};
-
-		cpu_trip_active_low: active-low {
-			temperature = <70000>;
-			hysteresis = <2000>;
-			type = "active";
-		};
-
-		cpu_trip_active_lowest: active-lowest {
-			temperature = <60000>;
-			hysteresis = <2000>;
-			type = "active";
-		};
-	};
-};
-
 &eth {
 	pinctrl-names = "default";
 	pinctrl-0 = <&mdio_pins>;
@@ -117,8 +83,6 @@
 };
 
 &fan {
-	/* cooling level (0, 1, 2, 3, 4, 5, 6, 7) : (0%/25%/37.5%/50%/62.5%/75%/87.5%/100% duty) */
-	cooling-levels = <0 26 64 127 159 191 223 255>;
 	pwms = <&pwm 0 10000>;
 	status = "okay";
 };
@@ -268,7 +232,6 @@
 	status = "okay";
 	nvmem-cells = <&eeprom_factory_0>;
 	nvmem-cell-names = "eeprom";
-	#thermal-sensor-cells = <1>;
 	
 	band@0 {
 		reg = <0>;

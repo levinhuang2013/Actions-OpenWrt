@@ -36,12 +36,12 @@ sed -i 's/ImmortalWrt-2.4G/COMFAST-2.4G/g' package/mtk/applications/mtwifi-cfg/f
 sed -i 's/ImmortalWrt-5G/COMFAST-5G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 
 # Add OpenClash DEV/TUN core
-cd ./feeds/luci/applications/luci-app-openclash/root/etc/openclash/
+#cd ./feeds/luci/applications/luci-app-openclash/root/etc/openclash/
 mkdir ./core && cd ./core
 #curl -sfL -o ./dev.tar.gz https://github.com/vernesong/OpenClash/raw/core/dev/dev/clash-linux-arm64.tar.gz
 #tar -zxf ./dev.tar.gz
 #curl -sfL -o ./clash_tun.gz https://github.com/vernesong/OpenClash/raw/core/dev/premium/clash-linux-arm64-2023.08.17-13-gdcc8d87.gz
 #gzip -d clash_tun.gz
-curl -sfL -o ./meta.tar.gz https://github.com/vernesong/OpenClash/raw/core/dev/meta/clash-linux-arm64.tar.gz
-tar -zxf ./meta.tar.gz && mv -f clash clash_meta
-chmod +x ./clash* ; rm -rf ./*.gz
+#curl -sfL -o ./meta.tar.gz https://github.com/vernesong/OpenClash/raw/core/dev/meta/clash-linux-arm64.tar.gz
+#tar -zxf ./meta.tar.gz && mv -f clash clash_meta
+#chmod +x ./clash* ; rm -rf ./*.gz

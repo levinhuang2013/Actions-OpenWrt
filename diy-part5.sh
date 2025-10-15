@@ -37,7 +37,7 @@ sed -i 's/ImmortalWrt-5G/COMFAST-5G/g' package/mtk/applications/mtwifi-cfg/files
 
 # Add OpenClash DEV/TUN core
 #cd ./feeds/luci/applications/luci-app-openclash/root/etc/openclash/
-mkdir ./core && cd ./core
+#mkdir ./core && cd ./core
 #curl -sfL -o ./dev.tar.gz https://github.com/vernesong/OpenClash/raw/core/dev/dev/clash-linux-arm64.tar.gz
 #tar -zxf ./dev.tar.gz
 #curl -sfL -o ./clash_tun.gz https://github.com/vernesong/OpenClash/raw/core/dev/premium/clash-linux-arm64-2023.08.17-13-gdcc8d87.gz

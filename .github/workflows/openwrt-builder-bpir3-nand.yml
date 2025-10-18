@@ -10,7 +10,7 @@
 # See /LICENSE for more information.
 #
 
-name: OpenWrt Builder-bpir3-emmc
+name: OpenWrt Builder-bpir3-nand
 
 on:
   repository_dispatch:

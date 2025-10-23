@@ -131,7 +131,7 @@ jobs:
       run: |
         echo "release_tag=immortalwrt-mt798x${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, nand-114m, lan: 192.168.6.1, sfp patch, ssid: BananaPi-5G, mt_wifi-7.6.6.1, mt_wifi-fw-20240823" >> release.txt
+        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, nand-114m, lan: 192.168.6.1, sfp patch, ssid: BananaPi-5G, mt_wifi-7.6.6.1, mt_wifi-fw-20230808" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release
@@ -154,7 +154,7 @@ jobs:
       uses: dev-drprasad/delete-older-releases@master
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       with:
-        keep_latest: 9
+        keep_latest: 12
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

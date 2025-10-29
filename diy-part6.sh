@@ -29,7 +29,7 @@ sed -i 's/192.168.1.1/192.168.6.1/g' package/base-files/files/bin/config_generat
 #git clone https://github.com/linkease/nas-packages-luci package/nas-packages-luci
 #git clone https://github.com/linkease/nas-packages package/nas-packages
 #git clone https://github.com/nikkinikki-org/OpenWrt-nikki package/nikki
-git clone https://github.com/FUjr/QModem package/qmodem
+#git clone https://github.com/FUjr/QModem package/qmodem
 
 # Modify default WiFi SSID
 sed -i 's/ImmortalWrt-2.4G/BananaPi-2.4G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh

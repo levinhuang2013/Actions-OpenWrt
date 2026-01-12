@@ -20,7 +20,7 @@ env:
   REPO_URL: https://github.com/levinhuang2013/immortalwrt-mt798x
   REPO_BRANCH: 7981r128-v7.6.7.2
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: hanwckf/sx-7981r128-7672-re.config
+  CONFIG_FILE: hanwckf/sx_7981r128-7672-re.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
   UPLOAD_BIN_DIR: false
@@ -143,7 +143,7 @@ jobs:
       run: |
         echo "release_tag=immortalwrt-mt798x${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}" >> $GITHUB_OUTPUT
         touch release.txt
-        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.6.1, openclash(meta), adguardhome, usb2, usb3, ttyd, diskman, kmod-sfp, w/o memory shrink, luci-app-mtwifi-cfg, mt_wifi-v7.6.7.2 mt7981-fw-20241218, 9921-support-SX-7981R128-for-mtk-sdk-k5.4.284.patch, ssid script" >> release.txt
+        echo "immortalwrt-mt798x${{ env.DEVICE_NAME }}, lan: 192.168.6.1, openclash(meta), adguardhome, usb2, usb3, ttyd, diskman, kmod-sfp, w/o memory shrink, luci-app-mtwifi-cfg, mt_wifi-v7.6.7.2, mt7981-fw-20241218, 9921-support-SX-7981R128-for-mtk-sdk-k5.4.284.patch, ssid suffix" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release

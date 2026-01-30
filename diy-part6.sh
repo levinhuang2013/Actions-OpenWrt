@@ -11,7 +11,7 @@
 #
 
 # Modify default IP
-sed -i 's/192.168.1.1/192.168.6.1/g' package/base-files/files/bin/config_generate
+sed -i 's/192.168.1.1/192.168.8.1/g' package/base-files/files/bin/config_generate
 
 # Modify default theme
 #sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
@@ -32,8 +32,8 @@ sed -i 's/192.168.1.1/192.168.6.1/g' package/base-files/files/bin/config_generat
 #git clone https://github.com/FUjr/QModem package/qmodem
 
 # Modify default WiFi SSID
-sed -i 's/ImmortalWrt-2.4G/BananaPi-2.4G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
-sed -i 's/ImmortalWrt-5G/BananaPi-5G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+#sed -i 's/ImmortalWrt-2.4G/BananaPi-2.4G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
+#sed -i 's/ImmortalWrt-5G/BananaPi-5G/g' package/mtk/applications/mtwifi-cfg/files/mtwifi.sh
 
 # Add OpenClash DEV/TUN core
 cd ./feeds/luci/applications/luci-app-openclash/root/etc/openclash/

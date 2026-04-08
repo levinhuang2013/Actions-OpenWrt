@@ -10,6 +10,9 @@
 #ifndef __EN8811H_H
 #define __EN8811H_H
 
+#define EN8811H_MD32_DM             "EthMD32.dm.bin"
+#define EN8811H_MD32_DSP            "EthMD32.DSP.bin"
+
 #define EN8811H_PHY_ID1             0x03a2
 #define EN8811H_PHY_ID2             0xa411
 #define EN8811H_PHY_ID              ((EN8811H_PHY_ID1 << 16) | EN8811H_PHY_ID2)

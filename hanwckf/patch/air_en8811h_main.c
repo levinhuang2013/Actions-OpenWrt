@@ -19,10 +19,9 @@
 #include <linux/delay.h>
 #include <linux/ethtool.h>
 #include <linux/delay.h>
-#include <linux/firmware.h>
-#include <linux/crc32.h>
 #include <linux/debugfs.h>
 #include "air_en8811h_api.h"
+#include "air_en8811h_fw.h"
 #include "air_en8811h.h"
 
 MODULE_DESCRIPTION("Airoha EN8811H PHY Drivers");
@@ -35,7 +34,6 @@ MODULE_LICENSE("GPL");
  * GPIO3  <-> BASE_T_LED2,
  **************************/
 /* User-defined.B */
-/*#define AIR_MD32_FW_CHECK*/
 #define AIR_LED_SUPPORT
 #ifdef AIR_LED_SUPPORT
 static const struct air_base_t_led_cfg led_cfg[3] = {
@@ -53,46 +51,8 @@ static const u16 led_dur = UNIT_LED_BLINK_DURATION << AIR_LED_BLK_DUR_64M;
 /***********************************************************
  *                  F U N C T I O N S
  ***********************************************************/
-static void air_mdio_read_buf(struct phy_device *phydev, unsigned long address,
-			const struct firmware *fw, unsigned int *crc32)
-{
-	unsigned int write_data, offset;
-	int ret = 0, len = 0;
-	unsigned int pbus_data_low, pbus_data_high;
-	struct device *dev = phydev_dev(phydev);
-	struct mii_bus *mbus = phydev_mdio_bus(phydev);
-	int addr = phydev_addr(phydev);
-	char *buf = kmalloc(fw->size, GFP_KERNEL);
-
-	memset(buf, '\0', fw->size);
-	/* page 4 */
-	ret |= air_mii_cl22_write(mbus, addr, 0x1F, 4);
-	/* address increment*/
-	ret |= air_mii_cl22_write(mbus, addr, 0x10, 0x8000);
-	ret |= air_mii_cl22_write(mbus, addr,
-			0x15, (unsigned int)((address >> 16) & 0xffff));
-	ret |= air_mii_cl22_write(mbus, addr,
-			0x16, (unsigned int)(address & 0xffff));
-	for (offset = 0; offset < fw->size; offset += 4) {
-		pbus_data_high = air_mii_cl22_read(mbus, addr, 0x17);
-		pbus_data_low = air_mii_cl22_read(mbus, addr, 0x18);
-		buf[offset + 0] = pbus_data_low & 0xff;
-		buf[offset + 1] = (pbus_data_low & 0xff00) >> 8;
-		buf[offset + 2] = pbus_data_high & 0xff;
-		buf[offset + 3] = (pbus_data_high & 0xff00) >> 8;
-	}
-	msleep(100);
-	*crc32 = ~crc32(~0, buf, fw->size);
-	ret |= air_mii_cl22_write(mbus, addr, 0x1F, 0);
-	kfree(buf);
-	if (ret) {
-		dev_info(dev, "%s 0x%lx FAIL(ret:%d)\n",
-				__func__, address, ret);
-	}
-}
-
-static int air_mdio_write_buf(struct phy_device *phydev,
-		unsigned long address, const struct firmware *fw)
+static int air_mdio_write_buf(struct phy_device *phydev, unsigned long address,
+		unsigned long array_size, const unsigned char *buffer)
 {
 	unsigned int write_data, offset;
 	int ret = 0;
@@ -123,14 +83,14 @@ static int air_mdio_write_buf(struct phy_device *phydev,
 		return ret;
 	}
 
-	for (offset = 0; offset < fw->size; offset += 4) {
-		write_data = (fw->data[offset + 3] << 8) | fw->data[offset + 2];
+	for (offset = 0; offset < array_size; offset += 4) {
+		write_data = (buffer[offset + 3] << 8) | buffer[offset + 2];
 		ret = air_mii_cl22_write(mbus, addr, 0x13, write_data);
 		if (ret < 0) {
 			dev_err(dev, "air_mii_cl22_write, ret: %d\n", ret);
 			return ret;
 		}
-		write_data = (fw->data[offset + 1] << 8) | fw->data[offset];
+		write_data = (buffer[offset + 1] << 8) | buffer[offset];
 		ret = air_mii_cl22_write(mbus, addr, 0x14, write_data);
 		if (ret < 0) {
 			dev_err(dev, "air_mii_cl22_write, ret: %d\n", ret);
@@ -148,14 +108,8 @@ static int air_mdio_write_buf(struct phy_device *phydev,
 static int en8811h_load_firmware(struct phy_device *phydev)
 {
 	struct device *dev = phydev_dev(phydev);
-	const struct firmware *fw;
-	const char *firmware;
 	int ret = 0;
 	u32 pbus_value = 0;
-#ifdef AIR_MD32_FW_CHECK
-	unsigned int d_crc32 = 0, crc32 = 0;
-	int retry = 0;
-#endif
 	struct en8811h_priv *priv = phydev->priv;
 
 	ret = air_buckpbus_reg_write(phydev,
@@ -168,86 +122,30 @@ static int en8811h_load_firmware(struct phy_device *phydev)
 					0x800000, pbus_value);
 	if (ret < 0)
 		return ret;
-	firmware = EN8811H_MD32_DM;
-	ret = request_firmware_direct(&fw, firmware, dev);
-	if (ret < 0) {
-		dev_err(dev,
-			"failed to load firmware %s, ret: %d\n", firmware, ret);
-		return ret;
-	}
-	priv->dm_crc32 = ~crc32(~0, fw->data, fw->size);
-	dev_info(dev, "%s: crc32=0x%x\n",
-		firmware, ~crc32(~0, fw->data, fw->size));
 	/* Download DM */
-	ret = air_mdio_write_buf(phydev, 0x00000000, fw);
-	release_firmware(fw);
+	ret = air_mdio_write_buf(phydev, 0x00000000, EthMD32_dm_size, EthMD32_dm);
 	if (ret < 0) {
 		dev_err(dev,
 			"air_mdio_write_buf 0x00000000 fail, ret: %d\n", ret);
-		goto release;
-	}
-
-	firmware = EN8811H_MD32_DSP;
-	ret = request_firmware_direct(&fw, firmware, dev);
-	if (ret < 0) {
-		dev_info(dev,
-			"failed to load firmware %s, ret: %d\n", firmware, ret);
 		return ret;
 	}
-	priv->dsp_crc32 = ~crc32(~0, fw->data, fw->size);
-	dev_info(dev, "%s: crc32=0x%x\n",
-		firmware, ~crc32(~0, fw->data, fw->size));
+
 	/* Download PM */
-	ret = air_mdio_write_buf(phydev, 0x00100000, fw);
+	ret = air_mdio_write_buf(phydev, 0x00100000, EthMD32_pm_size, EthMD32_pm);
 	if (ret < 0) {
 		dev_err(dev,
 			"air_mdio_write_buf 0x00100000 fail , ret: %d\n", ret);
-		goto release;
+		return ret;
 	}
 	pbus_value = air_buckpbus_reg_read(phydev, 0x800000);
 	pbus_value &= ~BIT(11);
 	ret = air_buckpbus_reg_write(phydev, 0x800000, pbus_value);
 	if (ret < 0)
-		goto release;
-#ifdef AIR_MD32_FW_CHECK
-	crc32 = ~crc32(~0, fw->data, fw->size);
-	/* Check PM */
-	air_mdio_read_buf(phydev, 0x100000, fw, &d_crc32);
-	if (d_crc32 == crc32)
-		dev_info(dev, "0x00100000 Check Sum Pass.\n");
-	else {
-		dev_info(dev, "0x00100000 Check Sum Fail.\n");
-		dev_info(dev, "CRC32 0x%x != Caculated CRC32 0x%x\n",
-					crc32, d_crc32);
-	}
-	release_firmware(fw);
-	retry = MAX_RETRY;
-	do {
-		ret = air_buckpbus_reg_write(phydev, 0x0f0018, 0x01);
-		if (ret < 0)
-			return ret;
-		msleep(100);
-		pbus_value = air_buckpbus_reg_read(phydev, 0x0f0018);
-		if (retry == 0) {
-			dev_err(dev,
-				"Release Software Reset fail , ret: %d\n",
-						pbus_value);
-			break;
-		}
-		retry--;
-	} while (pbus_value != 0x1);
-	dev_info(dev,
-		"Release Software Reset successful.\n");
-#else
-	release_firmware(fw);
+		return ret;
 	ret = air_buckpbus_reg_write(phydev, 0x0f0018, 0x01);
 	if (ret < 0)
 		return ret;
-#endif
 	return 0;
-release:
-	release_firmware(fw);
-	return ret;
 }
 
 #ifdef AIR_LED_SUPPORT

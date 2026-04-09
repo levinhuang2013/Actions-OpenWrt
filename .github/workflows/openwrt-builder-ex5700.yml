@@ -17,8 +17,8 @@ on:
   workflow_dispatch:
 
 env:
-  REPO_URL: https://github.com/levinhuang2013/immortalwrt-mt798x
-  REPO_BRANCH: ax7800
+  REPO_URL: https://github.com/zjuahhy/immortalwrt-mt798x
+  REPO_BRANCH: x60
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: hanwckf/ex5700-new.config
   DIY_P1_SH: diy-part1.sh

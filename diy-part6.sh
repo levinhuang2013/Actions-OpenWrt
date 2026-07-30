@@ -21,9 +21,9 @@ sed -i 's/192.168.1.1/192.168.8.1/g' package/base-files/files/bin/config_generat
 
 # Add packages
 #git clone -b js https://github.com/gngpp/luci-theme-design package/luci-theme-design
-git clone https://github.com/4IceG/luci-app-3ginfo-lite package/3ginfo
-#git clone https://github.com/4IceG/luci-app-modemdata package/modemdata
-#git clone https://github.com/obsy/modemdata package/obsymodemdata
+#git clone https://github.com/4IceG/luci-app-3ginfo-lite package/3ginfo
+git clone https://github.com/4IceG/luci-app-modemdata package/modemdata
+git clone https://github.com/levinhuang2013/modemdata package/obsymodemdata
 #git clone https://github.com/rufengsuixing/luci-app-adguardhome package/luci-app-adguardhome
 #git clone https://github.com/messense/aliyundrive-webdav package/aliyundrive-webdav
 #git clone https://github.com/sirpdboy/netspeedtest package/homebox
